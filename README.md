@@ -15,7 +15,7 @@ There are six different resources:
   - Mountains: Resources number 3, Produce Ore, 3 in total
   - Fields: Resources number 4, Produce Grain, 4 in total
   - Pasture: Resources number 5, Produce Wool, 4 in total
-  - Desert: Resources number 6 Produce Nothing, 1 in total 
+  - Desert: Resources number 0 Produce Nothing, 1 in total 
 - Number
 Each terrain, except Desert, has a special points between 2 to 14, except 7.
 - Harbor

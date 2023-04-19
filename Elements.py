@@ -1,33 +1,51 @@
 import random
 
 
-class Block:
-    def __init__(self):
-        self.resource = 0
-        self.num = 0
-        self.border = []
-        self.point = []
+class Point:
+    def __init__(self, idx):
+        self.idx = 0;
+        self.neighbors = [];
 
-    def create_element(self, resource, num, border_li, point_li):
+    def add_neighbor(self, neighbor):
+        self.neighbors.append(neighbor)
+
+    def add_neighbor_list(self, neighbor_list):
+        self.neighbors = neighbor_list
+
+
+class Terrain:
+    def __init__(self, resource, num, point_li):
         self.resource = resource
         self.num = num
-        self.border = border_li
+        # self.harbor = []
+        self.point = point_li
+
+    def create_element(self, resource, num, point_li):
+        self.resource = resource
+        self.num = num
+        # self.harbor = harbor_li
         self.point = point_li
 
 
 class Player:
     def __init__(self):
+        """
+        vp represent the victory point the player get.
+        reachable_points stores all points the player could build a road as start or build a building
+        settlements stores all points that have a settlement
+        cities stores all points that have city
+        """
         self.vp = 0  # victory points
-        self.roads = []
+        self.reachable_points = []
         self.settlements = []
         self.cities = []
-        self.resources_list = []
+        self.resources_list = [0,0,0,0,0]
 
     def build_settlements(self, point):
         self.settlements.append(point)
 
     def upgrade_cities(self, point):
-        if self.settlements.__contains__(point):
+        if point in self.settlements:
             self.settlements.remove(point)
             self.cities.append(point)
 
@@ -35,6 +53,7 @@ class Player:
         """
         Check the number of specific resource
         :param resource_id: the id of resources
+          Dessert: Resource number 0, Produce Nothing, 1 in total
           Hills: Resources number 1, Produce Brick, 3 in total
           Forest: Resources number 2, Produce Lumber, 4 in total
           Mountains: Resources number 3, Produce Ore, 3 in total
