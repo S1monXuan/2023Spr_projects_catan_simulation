@@ -602,8 +602,61 @@ def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, har
         settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
     else:
         # build road to the nearest harbor until it build a settlement in harbor
+        neareast_point, path = get_harbor_path(player.reachable_points, pp, harbor_point_list)
 
 
+def get_harbor_path(reachable_list: list, pp: list, harbor_point_list: list):
+    shortest_step = 100
+    raise NotImplementedError
+
+
+def shortest_harbor_path(reachable_list: list, pp, harbor_point_list: list) -> [int, list]:
+    """
+    get the nearest point(harbor) to the point and the shortest path to the point
+    :param player:
+    :param pp:
+    :param harbor_point_list:
+    :return: int represent the point contians the harbor, list contians the road to build the path
+    """
+    harbor_point = 0
+    res_list = []
+    for start_point in reachable_list:
+        cur_res_list = []
+        cur_path = [start_point]
+        find_shortest_path(start_point, pp, harbor_point_list, cur_path, cur_res_list)
+
+        print(cur_res_list)
+
+        if len(cur_res_list) < len(res_list):
+            res_list = cur_res_list.copy()
+            harbor_point = res_list[len(res_list) - 1]
+
+    return harbor_point, res_list
+
+
+def find_shortest_path(start_point: int, pp: list, harbor_point_list: list, cur_path: list, cur_res_list: list):
+    """
+    Support function to find the shortest path start from start_point, Using BFS
+    :param start_point: the start point for the path, default will not be the harbor_point_list
+    :param pp: point-point list
+    :param harbor_point_list: list contains all possible result
+    :param cur_path: list for all current visited path
+    :param res_list: return current best route
+    :return: int represent the point contains the harbor, list contains the road to build the path
+    """
+    if start_point in harbor_point_list:
+        # if len(cur_path) <= len(cur_res_list):
+        cur_res_list.append(cur_path.copy())
+        tmp = 1
+        return
+    else:
+        for neighbor in pp[start_point]:
+            if neighbor not in cur_path:
+                # not visited yet
+                cur_path.append(neighbor)
+                find_shortest_path(neighbor, pp, harbor_point_list, cur_path, cur_res_list)
+                cur_path.pop()
+        cur_path.pop()
 
 
 if __name__ == '__main__':
@@ -788,7 +841,10 @@ if __name__ == '__main__':
 
 ## h2, situation 2, check whether the player obtains a harbor, if so, same strategy as 1, else build road until reach harbor
 
-
+# try shortest path find
+    point, path = shortest_harbor_path(player.reachable_points, pp, harbor_point_list)
+    print(point)
+    print(path)
 
     ## step4: end this round do nothing
 
