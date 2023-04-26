@@ -36,10 +36,14 @@ class Player:
         cities stores all points that have city
         """
         self.vp = 0  # victory points
-        self.reachable_points = []
+        self.reachable_points = [] # points connected via roads
         self.settlements = []
         self.cities = []
-        self.resources_list = [0,0,0,0,0]
+        self.resources_list = [0, 0, 0, 0, 0]
+        self.road_num = 0
+
+    def set_resource_list(self, resource_list):
+        self.resources_list = resource_list
 
     def build_settlements(self, point):
         self.settlements.append(point)
@@ -53,12 +57,13 @@ class Player:
         """
         Check the number of specific resource
         :param resource_id: the id of resources
-          Dessert: Resource number 0, Produce Nothing, 1 in total
-          Hills: Resources number 1, Produce Brick, 3 in total
-          Forest: Resources number 2, Produce Lumber, 4 in total
-          Mountains: Resources number 3, Produce Ore, 3 in total
-          Fields: Resources number 4, Produce Grain, 4 in total
-          Pasture: Resources number 5, Produce Wool, 4 in total
+          Dessert: Resource number 5, Produce Nothing, 1 in total
+          Hills: Resources number 0, Produce Brick, 3 in total
+          Forest: Resources number 1, Produce Lumber, 4 in total
+          Mountains: Resources number 2, Produce Ore, 3 in total
+          Fields: Resources number 3, Produce Grain, 4 in total
+          Pasture: Resources number 4, Produce Wool, 4 in total
+
         :return: the number of specific resources
         """
         return self.resources_list[resource_id - 1]
@@ -83,3 +88,8 @@ class Player:
             self.resources_list[resource_id_have] -= 3
         elif trade_type == 1:
             self.resources_list[resource_id_have] -= 2
+
+    def print_player(self):
+        print(f'player vp: {self.vp}, settlement list: {self.settlements}, city list: {self.cities} \n'
+              f'reachable points list: {self.reachable_points} \n'
+              f'resources list: {self.resources_list}')
