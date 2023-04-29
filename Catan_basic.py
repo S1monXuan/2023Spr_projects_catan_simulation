@@ -1,6 +1,7 @@
 import random
 import pandas as pd
 from Elements import Player, Terrain, Point
+import matplotlib.pyplot as plt
 
 
 def roll_dice() -> int:
@@ -174,11 +175,11 @@ def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_te
 
     # get default resources:
     terrain_list = point_terrain_dict[point_probability_sort_list[0]]
-    print("resources")
-    for terrain_idx in terrain_list:
-        cur_terrain_res = idx_terrain_dict[terrain_idx].resource
-        print(cur_terrain_res)
-        player.resources_list[cur_terrain_res] += 1
+    # print("resources")
+    # for terrain_idx in terrain_list:
+    #     cur_terrain_res = idx_terrain_dict[terrain_idx].resource
+    #     print(cur_terrain_res)
+    #     player.resources_list[cur_terrain_res] += 1
 
     # build 2 roads for current place
     build_a_road(player, point_probability, pp, harbor_point_list, special_point=point_probability_sort_list[0])
@@ -225,13 +226,15 @@ def city_possible(player: Player, harbor_point_list):
     target_list = [2, 3]
 
     resource_lack = 0
-    resource_turn = 0
+    resource_turn = 0 # source could get via trading
 
     for idx in range(5):
         # check if the needed resource is redundant
         if idx in target_list:
-            resource_lack += max(needed_dict[idx] - player.resources_list[idx], 0)
-            resource_turn += int(max(player.resources_list[idx] - needed_dict[idx], 0) / trade_rate)
+            if needed_dict[idx] < player.resources_list[idx]:
+                resource_turn += int(max(player.resources_list[idx] - needed_dict[idx], 0) / trade_rate)
+            else:
+                resource_lack += max(needed_dict[idx] - player.resources_list[idx], 0)
         else:
             resource_turn += int(max(player.resources_list[idx], 0) / trade_rate)
 
@@ -256,7 +259,7 @@ def settlement_possible(player: Player, harbor_point_list, pp):
         building_neighbor.extend(pp[settlement_point])
     for city_point in player.cities:
         building_neighbor.extend(pp[city_point])
-    building_neighbor = list(set(building_neighbor)) # remove all redundant point
+    building_neighbor = list(set(building_neighbor))  # remove all redundant point
 
     buildable_point = []
     for point in reachable_points_lists:
@@ -425,7 +428,7 @@ def build_a_settlement(player, point_probability, pp, harbor_point_list):
             possible_point.remove(point)
 
     # get all possible point from possible_point
-    print(f"Cuurent possible point list: {possible_point}, len: {len(possible_point)}")
+    # print(f"Cuurent possible point list: {possible_point}, len: {len(possible_point)}")
     res_point, res_prob = possible_point[0], 0
     for point in possible_point:
         if (point not in un_buildable_points) and (point_probability[point] > res_prob):
@@ -484,7 +487,8 @@ def build_a_road(player, point_probability, pp, harbor_point_list, special_point
         # add all possible neighbors for player_reachable_points
         for reach_point in player.reachable_points:
             for nei_point in pp[reach_point]:
-                if nei_point not in player.settlements and nei_point not in player.cities and nei_point not in player.reachable_points:
+                if (nei_point not in player.settlements) and (nei_point not in player.cities) and (
+                        nei_point not in player.reachable_points):
                     building_point.append(nei_point)
 
         target_point, target_prob = -1, -1
@@ -535,9 +539,9 @@ def city_upgrade_prefer(player: Player, terrain_dict, point_probability, pp, har
         build_a_city(player, point_probability, harbor_point_list)
         # check if resource available for building a settlement: while loop
     # building a settlement can only be considered if there does not have any settlement waiting for upgrading
-    if len(player.settlements) == 0:
+    if len(player.settlements) == 0 or len(player.cities) == 4:
         while settlement_possible(player, harbor_point_list, pp):
-            print("settlement_build_prefer() pass")
+            # print("settlement_build_prefer() pass")
             build_a_settlement(player, point_probability, pp, harbor_point_list)
             # check if resource available for building a road + settlement: for loop * 2
         for _ in range(2):
@@ -569,23 +573,22 @@ def settlement_build_prefer(player: Player, terrain_dict, point_probability, pp,
         while city_possible(player, harbor_point_list):
             build_a_city(player, point_probability, harbor_point_list)
             # check if resource available for building a settlement: while loop
-    # building a settlement can only be considered if there does not have any settlement waiting for upgrading
-    while road_possible(player, harbor_point_list):
-        while settlement_possible(player, harbor_point_list, pp):
+
+    # while road_possible(player, harbor_point_list):
+    while settlement_possible(player, harbor_point_list, pp):
+        build_a_settlement(player, point_probability, pp, harbor_point_list)
+        # check if resource available for building a road + settlement: for loop * 2
+    for _ in range(2):
+        if road_possible(player, harbor_point_list):
+            build_a_road(player, point_probability, pp, harbor_point_list)
+        if settlement_possible(player, harbor_point_list, pp):
             build_a_settlement(player, point_probability, pp, harbor_point_list)
-            # check if resource available for building a road + settlement: for loop * 2
-        for _ in range(2):
-            if road_possible(player, harbor_point_list):
-                build_a_road(player, point_probability, pp, harbor_point_list)
-            if settlement_possible(player, harbor_point_list, pp):
-                build_a_settlement(player, point_probability, pp, harbor_point_list)
 
 
-def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, harbor_point_list) -> None:
+def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, harbor_point_list, harbor_path,
+                        dest_harbor) -> None:
     """
     For Hypothesis 2, situation 2, build a settlement in a harbor city first if there does not have any harbor city yet
-
-
     :param player:
     :param terrain_dict:
     :param point_probability:
@@ -596,21 +599,28 @@ def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, har
     building_point_list = player.cities.copy()
     building_point_list.extend(player.settlements)
 
-    # check wether player owns a harbor
+    # check whether player owns a harbor
     if own_harbor(player, harbor_point_list):
         # step 2: if already have a harbor, do as settlement first
         settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
     else:
         # build road to the nearest harbor until it build a settlement in harbor
-        neareast_point, path = get_harbor_path(player.reachable_points, pp, harbor_point_list)
+        while road_possible(player, harbor_point_list) and len(harbor_path) > 0:
+            # road is buildable and the harbor point is reachable
+            cur_road = harbor_path.pop(0)
+            cur_reachable = player.reachable_points.copy()
+            cur_reachable.append(cur_road)
+            build_a_road(player, point_probability, pp, harbor_point_list)
+            player.reachable_points = cur_reachable
+        # check if the harbor has a building, if not, try build a building
+        if settlement_possible(player, harbor_point_list, pp):
+            cur_settlements = player.settlements.copy()
+            cur_settlements.append(dest_harbor)
+            build_a_settlement(player, point_probability, pp, harbor_point_list)
+            player.settlements = cur_settlements
 
 
-def get_harbor_path(reachable_list: list, pp: list, harbor_point_list: list):
-    shortest_step = 100
-    raise NotImplementedError
-
-
-def shortest_harbor_path(reachable_list: list, pp, harbor_point_list: list) -> [int, list]:
+def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor_point_list: list) -> [int, list]:
     """
     get the nearest point(harbor) to the point and the shortest path to the point
     :param player:
@@ -619,22 +629,27 @@ def shortest_harbor_path(reachable_list: list, pp, harbor_point_list: list) -> [
     :return: int represent the point contians the harbor, list contians the road to build the path
     """
     harbor_point = 0
-    res_list = []
+    res_list = [*range(0, 54, 1)]
+
+    # remove all valid harbor_point_list if they are the neighbor for current player
+    cur_harbor_point_list = harbor_point_list.copy()
+    for settlement in cur_settlements:
+        neighbors = pp[settlement]
+        for nei in neighbors:
+            if nei in cur_harbor_point_list:
+                cur_harbor_point_list = [ele for ele in cur_harbor_point_list if ele != nei]
+
     for start_point in reachable_list:
-        cur_res_list = []
-        cur_path = [start_point]
-        find_shortest_path(start_point, pp, harbor_point_list, cur_path, cur_res_list)
+        cur_path = find_shortest_path(start_point, pp, cur_harbor_point_list)
 
-        print(cur_res_list)
-
-        if len(cur_res_list) < len(res_list):
-            res_list = cur_res_list.copy()
+        if len(cur_path) < len(res_list):
+            res_list = cur_path
             harbor_point = res_list[len(res_list) - 1]
 
     return harbor_point, res_list
 
 
-def find_shortest_path(start_point: int, pp: list, harbor_point_list: list, cur_path: list, cur_res_list: list):
+def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> list:
     """
     Support function to find the shortest path start from start_point, Using BFS
     :param start_point: the start point for the path, default will not be the harbor_point_list
@@ -644,19 +659,194 @@ def find_shortest_path(start_point: int, pp: list, harbor_point_list: list, cur_
     :param res_list: return current best route
     :return: int represent the point contains the harbor, list contains the road to build the path
     """
+    queue_list = [[start_point]]
+    visited = [start_point]
     if start_point in harbor_point_list:
         # if len(cur_path) <= len(cur_res_list):
-        cur_res_list.append(cur_path.copy())
-        tmp = 1
-        return
-    else:
-        for neighbor in pp[start_point]:
-            if neighbor not in cur_path:
-                # not visited yet
-                cur_path.append(neighbor)
-                find_shortest_path(neighbor, pp, harbor_point_list, cur_path, cur_res_list)
-                cur_path.pop()
-        cur_path.pop()
+        return [start_point]
+
+    while queue_list is not None:
+        size = len(queue_list)
+        new_layer = []
+        for _ in range(size):
+            cur_route = queue_list.pop(0)
+            cur_point = cur_route[-1]
+            if cur_point in harbor_point_list:
+                return cur_route
+            neighbors = pp[cur_point]
+            for neighbor in neighbors:
+                route = cur_route.copy()
+                if neighbor not in cur_route:
+                    route.append(neighbor)
+                    if neighbor not in visited:
+                        new_layer.append(neighbor)
+                    queue_list.append(route)
+        visited.extend(new_layer)
+
+    return None
+
+
+def get_resource(player: Player, terrain_dict: dict) -> None:
+    """
+        Simulatte the resource get process, after the function, all resources were updated
+    :param player:
+    :param terrain_dict:
+    :return:
+    """
+    dice_num = roll_dice() + roll_dice()
+    terrain_resources = [[t.point, t.resource] for t in terrain_dict[dice_num]]
+
+    ## step 2: find all player owned place, add resource
+    # add 1 resouce to all settlments
+    player_buildings = player.settlements
+    if dice_num != 7:  # if the number is 7, do not have any resource, jump out for further report
+        for building_point in player_buildings:
+            for [des_point_list, point_resource] in terrain_resources:
+                player.resources_list[point_resource] += 1 if building_point in des_point_list else 0
+
+        player_buildings = player.cities
+        for building_point in player_buildings:
+            for [des_point_list, point_resource] in terrain_resources:
+                player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
+
+
+def get_rec_list(player: Player):
+    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = [], [], [], [], [], [], [], [], []
+    vp_rec.append(player.vp)
+    set_rec.append(len(player.settlements))
+    city_rec.append(len(player.cities))
+    road_rec.append(player.road_num)
+    brick_rec.append(player.resources_list[0])
+    lum_rec.append(player.resources_list[1])
+    ore_rec.append(player.resources_list[2])
+    grain_rec.append(player.resources_list[3])
+    wool_rec.append(player.resources_list[4])
+    return vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+
+
+def check_game_pass(player, time, vp, epoch, max_round):
+    if player.vp >= vp:
+        print("==============================")
+        print(f"game finished, player win in round {time + 1}")
+        print("Player status display:")
+        player.print_player()
+        return True
+    # if not, check player situation for every 50 rounds
+    if (time + 1) % epoch == 0:
+        print("==============================")
+        print(f"player status after round {time + 1}")
+        print("Player status display:")
+        player.print_player()
+
+    if time == max_round - 1:
+        print("==============================")
+        print("game over, player failed to reach victory point")
+
+    return False
+
+
+def settlement_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+                          epoch=50):
+    ## for settlement prefer strategy
+    max_round, vp, gamePass = max_round, vp, False
+    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+    used_round = max_round
+    for time in range(max_round):
+        # step 1: get resource
+        get_resource(player, terrain_dict)
+        # step 2: check for any possible build process
+        settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+
+        # step 3: store current status into resource recorder for later display
+        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+
+        # step 4: check if player wins, if so, display and return all results
+        gamePass = check_game_pass(player, time, vp, epoch, max_round)
+        if gamePass:
+            used_round = time
+            break
+
+    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+
+
+def city_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+                    epoch=50):
+    ## for settlement prefer strategy
+    max_round, vp, gamePass = max_round, vp, False
+    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+    used_round = max_round
+
+    for time in range(max_round):
+        # step 1: get resource
+        get_resource(player, terrain_dict)
+        # step 2: check for any possible build process
+        city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+
+        # step 3: store current status into resource recorder for later display
+        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+
+        # step 4: check if player wins, if so, display and return all results
+        gamePass = check_game_pass(player, time, vp, epoch, max_round)
+        if gamePass:
+            used_round = time
+            break
+
+    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+
+
+def harbor_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+                      epoch=50):
+    ## for settlement prefer strategy
+    dest_harbor_point, dest_path = shortest_harbor_path(player.settlements, player.reachable_points, pp,
+                                                        harbor_point_list)
+
+    max_round, vp, gamePass = max_round, vp, False
+    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+    used_round = max_round
+    for time in range(max_round):
+        # step 1: get resource
+        get_resource(player, terrain_dict)
+        # step 2: check for any possible build process
+        harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
+                            dest_harbor_point)
+
+        # step 3: store current status into resource recorder for later display
+        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+
+        # step 4: check if player wins, if so, display and return all results
+        gamePass = check_game_pass(player, time, vp, epoch, max_round)
+        if gamePass:
+            used_round = time
+            break
+
+    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+
+
+def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_type: str, hypo: int,
+                  simulation_times=1000):
+    if len(round_rec1) < simulation_times:
+        for _ in range(simulation_times - len(round_rec1)):
+            round_rec1.append(0)
+    if len(round_rec2) < simulation_times:
+        for _ in range(simulation_times - len(round_rec2)):
+            round_rec2.append(0)
+
+    # visualization
+    x_val = [*range(simulation_times)]
+    y_rec1 = round_rec1
+    y_rec2 = round_rec2
+
+    title = f"Vis_for_Hypothesis_{hypo}"
+
+    plt.title(title)
+    plt.xlabel("Times")
+    plt.ylabel("Used Rounds")
+    plt.plot(x_val, y_rec1)
+    plt.plot(x_val, y_rec2)
+    plt.legend([round1_type, round2_type])
+    output_name = './data/output/' + title
+    plt.savefig(output_name)
+    plt.close()
 
 
 if __name__ == '__main__':
@@ -696,179 +886,50 @@ if __name__ == '__main__':
     # test for initiate map
     ph, pp, tp = initiate_map(init_data_url)
     harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
-    print(harbor_point_list)
-    # print(len(ph), len(pp), len(tp))
-    # print("ph, pp, tp")
-    # print(ph)
-    # print(pp)
-    # print(tp)
-    # print("===============================")
-
-    # create a terrain list using p_p, p_h, t_p
     terrain_type_list = get_terrain_resource()
     terrain_number_list = get_roll_num_list(terrain_type_list)
     idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
-    # print("terrain_type_list, terrain_number_list, idx_terrain_dict, terrain_dict")
-    # print(terrain_type_list)
-    # print(terrain_number_list)
-    # print(idx_terrain_dict)
-    # print(terrain_dict)
-    # print("===============================")
-
     point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
-    # print("point_terrain_dict, point_probability, point_probability_sort_list")
-    # print(point_terrain_dict)
-    # print(point_probability)
-    # print(point_probability_sort_list)
-    # print("===============================")
 
-    # for simulation
-    # before starting simulation loop, create a player
-    player = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict, point_probability)
+    simulation_times = 1000
+    val1 = []
+    val2 = []
 
-    # Hypothesis 1
-    #     Upgrading a city is a better choice than building a new settlement
-    # Hypothesis 2
-    #     Get a harbor at first is better than obtain a new source
+    for i in range(simulation_times):
+        player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                   point_probability)
+        player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                   point_probability)
 
-    ## step 1: get the roll number
-    dice_num = roll_dice() + roll_dice()
-    # judge whether the player get resource using terrain_dict
-    # terrain_resource = terrain_dict[dice_num]
-    terrain_resources = [[t.point, t.resource] for t in terrain_dict[dice_num]]
-    # print(terrain_resources)
+        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = settlement_simulation(
+            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10, epoch=50)
+        times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
+            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+                              epoch=50)
 
-    ## step 2: find all player owned place, add resource
-    # add 1 resouce to all settlments
-    player_buildings = player.settlements
-    if dice_num != 7:  # if the number is 7, do not have any resource, jump out for further report
-        for building_point in player_buildings:
-            for [des_point_list, point_resource] in terrain_resources:
-                player.resources_list[point_resource] += 1 if building_point in des_point_list else 0
+        val1.append(times1)
+        val2.append(times2)
 
-        # print("Check player after add resource for settlement")
-        # player.print_player()
+    vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
 
-        # print(f"create city in point {terrain_resources[0][0][0]} for test")
-        # player.cities.append(terrain_resources[0][0][0])
-        # add 2 resources to all settlements
-        player_buildings = player.cities
-        for building_point in player_buildings:
-            for [des_point_list, point_resource] in terrain_resources:
-                player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
-        # print("Check player after add resource for city")
-        # player.print_player()
+    # hypothesis 2 simulation:
+    simulation_times = 1000
+    val1 = []
+    val2 = []
 
-    # test for each round
-    ## Case 1, h1: situation 1: if there has a settlment, then upgrade the city
-    # prerequest1: player would upgrade the city with highest probability
+    for i in range(simulation_times):
+        player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                   point_probability)
+        player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                   point_probability)
 
-    # city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = harbor_simulation(
+            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10, epoch=50)
+        times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
+            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+                              epoch=50)
 
-    ## Case 2, h1: suituatnio 2: if build a settlement possible,build a settlement first
+        val1.append(times1)
+        val2.append(times2)
 
-    ### check for case 1 and case 2 for hypothesis 1
-    # print("==============================")
-    # print("settlement_build_test")
-    # player.set_resource_list([100, 100, 100, 100, 100])
-    # print("do city upgrade prefer:")
-    # city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-    #
-    # print("current status")
-    # player.print_player()
-    # settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-    # print("after settlement_build")
-    # player.print_player()
-    # player.set_resource_list([10, 20, 2, 3, 3])
-    # print("current status")
-    # player.print_player()
-    # settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-    # print("after settlement_build")
-    # player.print_player()
-
-    # print("Current player status")
-    # player.print_player()
-    # print("=========================")
-    #
-    # print("test road build, add 1 brick, 1 lumber ")
-    # player.resources_list[0] += 1
-    # player.resources_list[1] += 1
-    # # test road build:
-    # build_a_road(player, point_probability, pp, harbor_point_list)
-    # player.print_player()
-    # print("=========================")
-    #
-    # print("test settlement build, add 1 brick, lumber, wool, grain")
-    # player.resources_list[0] += 1
-    # player.resources_list[1] += 1
-    # player.resources_list[3] += 1
-    # player.resources_list[4] += 1
-    # # test settlement build:
-    # build_a_settlement(player, point_probability, pp, harbor_point_list)
-    # player.print_player()
-    # print("=========================")
-    # print("test settlement city, add 2 grain, 3 ore")
-    # player.resources_list[2] += 3
-    # player.resources_list[3] += 2
-    # # test city build
-    # build_a_city(player, point_probability, harbor_point_list)
-    # player.print_player()
-    # print("=========================")
-
-    # test for add resource
-    # player.set_resource_list([0,0,0,0,0])
-    # player.print_player()
-    #
-    # # check trade resource
-    # print("==========res: [5, 0, 0, 1,1]========")
-    # player.set_resource_list([5,0,0,1,1])
-    # player.print_player()
-    # print(road_possible(player, harbor_point_list), settlement_possible(player, harbor_point_list, pp), city_possible(player, harbor_point_list))
-    #
-    # print("==========res: [5, 0, 0, 0,0]========")
-    # player.set_resource_list([0,4,2,2,0])
-    # player.print_player()
-    # print(road_possible(player, harbor_point_list), settlement_possible(player, harbor_point_list, pp), city_possible(player, harbor_point_list))
-
-    ## h1, situation 2, first check whether upgrading a settlement is possible
-    # check if resource available for building a settlement: while loop
-
-    # check if resource available for building a road + settlement: for loop * 2
-
-    # check if resource available for upgrading a city: while loop
-
-## h2, situation 1, first check whether upgrading a settlement is possible same as settlement upgrading
-
-## h2, situation 2, check whether the player obtains a harbor, if so, same strategy as 1, else build road until reach harbor
-
-# try shortest path find
-    point, path = shortest_harbor_path(player.reachable_points, pp, harbor_point_list)
-    print(point)
-    print(path)
-
-    ## step4: end this round do nothing
-
-    # if player.resources_list[2] >= 3 and player.resources_list[3] >= 2 and len(player.settlements) > 0:
-    #     upgrade_city(player, )
-    # else
-
-    # generate simulation steps
-    # for ite in range(1000):
-    #     # jump out when run 100 times or reach vp point requirement
-    #     if player.vp == 10: break
-    #     # print results every 50 rolls
-    #     if ite % 50 == 0:
-    #         # show the result of current player situation for every 50 rounds
-    #         # display current situation
-    #         player.print_player()
-    #
-    #     # roll a dice and get the point
-    #     dice_num = roll_dice()
-    #     # check whether the player would gain resource
-    #     gain_resource(player, dice_num, );
-
-    # check whether the player could build a road and decide the next road point
-
-    # check whether the player could build a settlement or upgrade to a city
-
-    # check whether the player could build
+    vis_two_round(val1, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)
