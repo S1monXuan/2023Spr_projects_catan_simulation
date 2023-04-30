@@ -355,7 +355,7 @@ def build_a_city(player, point_probability, harbor_point_list):
                 if need_res == 0:
                     continue
                 if idx != need_id:
-                    cur_res = int(player.resources_list[idx] - needed_dict[idx] / trade_rate)
+                    cur_res = int((player.resources_list[idx] - needed_dict[idx]) / trade_rate)
                     trans_res = min(cur_res, need_res)
                     player.resources_list[idx] -= trans_res * trade_rate
                     player.resources_list[need_id] += trans_res
@@ -405,7 +405,7 @@ def build_a_settlement(player, point_probability, pp, harbor_point_list):
                 if need_res == 0:
                     continue
                 if idx != need_id:
-                    cur_res = int(player.resources_list[idx] - needed_dict[idx] / trade_rate)
+                    cur_res = int((player.resources_list[idx] - needed_dict[idx]) / trade_rate)
                     trans_res = min(cur_res, need_res)
                     player.resources_list[idx] -= trans_res * trade_rate
                     player.resources_list[need_id] += trans_res
@@ -475,7 +475,7 @@ def build_a_road(player, point_probability, pp, harbor_point_list, special_point
                     if need_res == 0:
                         continue
                     if idx != need_id:
-                        cur_res = int(player.resources_list[idx] - needed_dict[idx] / trade_rate)
+                        cur_res = int((player.resources_list[idx] - needed_dict[idx]) / trade_rate)
                         trans_res = min(cur_res, need_res)
                         player.resources_list[idx] -= trans_res * trade_rate
                         player.resources_list[need_id] += trans_res
@@ -569,7 +569,10 @@ def settlement_build_prefer(player: Player, terrain_dict, point_probability, pp,
 
     # check if resource available for upgrading a city: while loop
     ## can only upgrade a city when all settlement is built, number of settlement reach 5
-    if len(player.settlements) == 5:
+    if len(player.settlements) == 5 or player.road_num == 15:
+        # two possible situation to consider upgrade to a city:
+        #     1. the settlement reaches highest demands
+        #     2. no more road to build, but have settlement ungraded
         while city_possible(player, harbor_point_list):
             build_a_city(player, point_probability, harbor_point_list)
             # check if resource available for building a settlement: while loop
