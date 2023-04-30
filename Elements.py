@@ -89,6 +89,11 @@ class Player:
         elif trade_type == 1:
             self.resources_list[resource_id_have] -= 2
 
+    def discard_one_resource(self):
+        max_num = max(self.resources_list)
+        max_idx = self.resources_list.index(max_num)
+        self.resources_list[max_idx] -= 1
+
     def print_player(self):
         print(f'player vp: {self.vp}, settlement list: {self.settlements}, city list: {self.cities} \n'
               f'reachable points list: {self.reachable_points} \n'

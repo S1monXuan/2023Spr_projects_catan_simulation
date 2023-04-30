@@ -2,6 +2,9 @@ import random
 import pandas as pd
 from Elements import Player, Terrain, Point
 import matplotlib.pyplot as plt
+import warnings
+import csv
+warnings.filterwarnings('ignore')
 
 
 def roll_dice() -> int:
@@ -48,16 +51,6 @@ def initiate_map(default_setting_url):
     for [idx, point] in t_p_data:
         t_p[idx - 1].append(point - 1)
     return p_h, p_p, t_p
-
-
-def simulation(player: Player, resourcelist: dict, target_point=10):
-    # simulate a round process
-    if player.vp == target_point:
-        # if it reaches vp point, just return the point and return
-        raise NotImplemented
-    else:
-        # start running simulation
-        num = roll_dice() + roll_dice()
 
 
 def get_terrain_resource():
@@ -192,11 +185,6 @@ def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_te
     return player
 
 
-def simulation_single_round(player: Player, pp, tp, ph, terrain_type_list, idx_terrain_dict, point_terrain_dict,
-                            simulation_times=1000):
-    return 0
-
-
 def own_harbor(player, harbor_point_list):
     possible_point = player.settlements.copy()
     possible_point.extend(player.cities)
@@ -226,7 +214,7 @@ def city_possible(player: Player, harbor_point_list):
     target_list = [2, 3]
 
     resource_lack = 0
-    resource_turn = 0 # source could get via trading
+    resource_turn = 0  # source could get via trading
 
     for idx in range(5):
         # check if the needed resource is redundant
@@ -711,6 +699,13 @@ def get_resource(player: Player, terrain_dict: dict) -> None:
         for building_point in player_buildings:
             for [des_point_list, point_resource] in terrain_resources:
                 player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
+    # else: # dice_num == 7
+    #     # if the dice rolls 7, player must discard resources if the resources number larger than 7
+    #     # hypothesis: player always discard the most resources type
+    #     discard_num = sum(player.resources_list) // 2
+    #     while discard_num > 0:
+    #         player.discard_one_resource()
+    #         discard_num -= 1
 
 
 def get_rec_list(player: Player):
@@ -852,6 +847,41 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.close()
 
 
+def board_save(point_terrain_dict: dict, idx_terrain_dict:dict) -> None:
+    """
+    Save the current board situation into a csv file
+    :param point_terrain_dict:
+    :return: an output csv file stores the current board situation
+    """
+    # default setting
+    header = [["Resource"]]
+    for i in range(2, 13, 1):
+        header[0].append(i)
+    resource_list = [["Brick"], ["Lumber"], ["Ore"], ["Grain"], ["Wool"]]
+    for resource in resource_list:
+        for i in range(2, 13, 1):
+            resource.append(0)
+    # add number into resources
+    for point, terrains in point_terrain_dict.items():
+        for terrainidx in terrains:
+            terrain = idx_terrain_dict[terrainidx]
+            if terrain.resource == 5: continue # find dessert
+            resource_list[terrain.resource][terrain.num - 1] += 1
+
+    for resourceli in resource_list:
+        header.append(resourceli)
+
+    # display resource situation
+    print(header)
+    for resource in resource_list:
+        print(resource)
+
+    # stroe situation into a csvfile
+    with open('data/output/border.csv', 'w', newline='') as file:
+        writer = csv.writer(file, quoting=csv.QUOTE_ALL, delimiter=',')
+        writer.writerows(header)
+
+
 if __name__ == '__main__':
     """
     Variable for all used data structures
@@ -894,7 +924,12 @@ if __name__ == '__main__':
     idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
     point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
 
-    simulation_times = 1000
+    ## store the current board situation
+    board_save(point_terrain_dict, idx_terrain_dict)
+
+    ## simulation part
+
+    simulation_times, max_round, vp, epoch = 1000, 300, 10, 50
     val1 = []
     val2 = []
 
@@ -905,10 +940,10 @@ if __name__ == '__main__':
                                    point_probability)
 
         times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = settlement_simulation(
-            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10, epoch=50)
+            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round, vp=vp, epoch=epoch)
         times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
-                              epoch=50)
+            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round,
+                              vp=vp, epoch=epoch)
 
         val1.append(times1)
         val2.append(times2)
@@ -916,7 +951,7 @@ if __name__ == '__main__':
     vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
 
     # hypothesis 2 simulation:
-    simulation_times = 1000
+    simulation_times, max_round, vp, epoch = 1000, 300, 10, 50
     val1 = []
     val2 = []
 
@@ -927,10 +962,11 @@ if __name__ == '__main__':
                                    point_probability)
 
         times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = harbor_simulation(
-            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10, epoch=50)
+            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round, vp=vp, epoch=epoch)
         times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
-                              epoch=50)
+            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round,
+                              vp=vp,
+                              epoch=epoch)
 
         val1.append(times1)
         val2.append(times2)
