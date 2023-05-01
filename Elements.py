@@ -1,6 +1,3 @@
-import random
-
-
 class Point:
     def __init__(self, idx):
         self.idx = 0;
