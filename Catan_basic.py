@@ -728,20 +728,25 @@ def check_game_pass(player, time, vp, epoch, max_round):
     return False
 
 
-def settlement_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
+def simulation_process(player, terrain_dict, point_probability, pp, harbor_point_list, strategy, max_round=200, vp=10,
                           epoch=50):
     """
-    Make a simulation for a settlement based method
+
     :param player:
     :param terrain_dict:
     :param point_probability:
     :param pp:
     :param harbor_point_list:
+    :param strategy_Function: 1 for settlement, 2 for city, 3 for harbor
     :param max_round:
     :param vp:
     :param epoch:
-    :return: Current used : round for player used rounds, max_round if player failed to reach demanding victory point
+    :return:
     """
+    if strategy == 3:
+        dest_harbor_point, dest_path = shortest_harbor_path(player.settlements, player.reachable_points, pp,
+                                                            harbor_point_list)
+
     ## for settlement prefer strategy
     max_round, vp, gamePass = max_round, vp, False
     vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
@@ -750,87 +755,13 @@ def settlement_simulation(player, terrain_dict, point_probability, pp, harbor_po
         # step 1: get resource
         get_resource(player, terrain_dict)
         # step 2: check for any possible build process
-        settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-
-        # step 3: store current status into resource recorder for later display
-        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
-
-        # step 4: check if player wins, if so, display and return all results
-        gamePass = check_game_pass(player, time, vp, epoch, max_round)
-        if gamePass:
-            used_round = time
-            break
-
-    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
-
-
-def city_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
-                    epoch=50):
-    """
-    Make a simulation for a city prefered method
-    :param player:
-    :param terrain_dict:
-    :param point_probability:
-    :param pp:
-    :param harbor_point_list:
-    :param max_round:
-    :param vp:
-    :param epoch:
-    :return: Current used : round for player used rounds, max_round if player failed to reach demanding victory point
-    """
-    ## for settlement prefer strategy
-    max_round, vp, gamePass = max_round, vp, False
-    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
-    used_round = max_round
-
-    for time in range(max_round):
-        # step 1: get resource
-        get_resource(player, terrain_dict)
-        # step 2: check for any possible build process
-        city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-
-        # step 3: store current status into resource recorder for later display
-        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
-
-        # step 4: check if player wins, if so, display and return all results
-        gamePass = check_game_pass(player, time, vp, epoch, max_round)
-        if gamePass:
-            used_round = time
-            break
-
-    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
-
-
-def harbor_simulation(player, terrain_dict, point_probability, pp, harbor_point_list, max_round=200, vp=10,
-                      epoch=50):
-    """
-    Make a simulation for a harbor based method
-    Player would use resources to build a settlement at a harbor point as first priority, after getting a harbor, do as
-        settlement prefer methods
-    :param player:
-    :param terrain_dict:
-    :param point_probability:
-    :param pp:
-    :param harbor_point_list:
-    :param max_round:
-    :param vp:
-    :param epoch:
-    :return: Current used : round for player used rounds, max_round if player failed to reach demanding victory point
-    """
-    ## for settlement prefer strategy
-    dest_harbor_point, dest_path = shortest_harbor_path(player.settlements, player.reachable_points, pp,
-                                                        harbor_point_list)
-
-    max_round, vp, gamePass = max_round, vp, False
-    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
-    used_round = max_round
-    for time in range(max_round):
-        # step 1: get resource
-        get_resource(player, terrain_dict)
-        # step 2: check for any possible build process
-        harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
-                            dest_harbor_point)
-
+        if strategy == 1:
+            settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+        elif strategy == 2:
+            city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+        elif strategy == 3:
+            harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
+                                dest_harbor_point)
         # step 3: store current status into resource recorder for later display
         vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
 
@@ -993,6 +924,7 @@ if __name__ == '__main__':
     simulation_times, max_round, vp, epoch = 1000, 200, 10, 50
     val1 = []
     val2 = []
+    val3 = []
 
     for i in range(simulation_times):
         # cereate a new board
@@ -1006,43 +938,22 @@ if __name__ == '__main__':
                                    point_probability)
         player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
                                    point_probability)
+        player3 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                   point_probability)
 
-        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = settlement_simulation(
-            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round, vp=vp, epoch=epoch)
+        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = simulation_process(
+            player1, terrain_dict, point_probability, pp, harbor_point_list, 1, max_round=max_round, vp=vp, epoch=epoch)
         times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round,
+            = simulation_process(player2, terrain_dict, point_probability, pp, harbor_point_list, 2, max_round=max_round,
                               vp=vp, epoch=epoch)
+        times3, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
+            = simulation_process(player3, terrain_dict, point_probability, pp, harbor_point_list, 3,
+                                 max_round=max_round,
+                                 vp=vp, epoch=epoch)
 
         val1.append(times1)
         val2.append(times2)
+        val3.append(times3)
 
     vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
-
-    # hypothesis 2 simulation:
-    # simulation_times, max_round, vp, epoch = 1000, 200, 10, 50
-    val1 = []
-    val2 = []
-
-    for i in range(simulation_times):
-        harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
-        terrain_type_list = get_terrain_resource()
-        terrain_number_list = get_roll_num_list(terrain_type_list)
-        idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
-        point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
-
-        player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability)
-        player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability)
-
-        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = harbor_simulation(
-            player1, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round, vp=vp, epoch=epoch)
-        times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = city_simulation(player2, terrain_dict, point_probability, pp, harbor_point_list, max_round=max_round,
-                              vp=vp,
-                              epoch=epoch)
-
-        val1.append(times1)
-        val2.append(times2)
-
-    vis_two_round(val1, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)
+    vis_two_round(val3, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)
