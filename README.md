@@ -1,6 +1,6 @@
 # 2023Spr_projects
 It is the final project for UIUC IS 597 pr. Created by Xinmai Xuan (xinmaix2).
-It is an ongoing project and might be finished in following 2-3 weeks.
+The coding part is finished
 
 # Phrase 1:
 
@@ -17,7 +17,7 @@ There are six different resources:
   - Pasture: Resources number 5, Produce Wool, 4 in total
   - Desert: Resources number 0 Produce Nothing, 1 in total 
 - Number
-Each terrain, except Desert, has a special points between 2 to 14, except 7.
+Each terrain, except Desert, has a special points between 2 and 14, except 7.
 - Harbor
 Some terrains located on the edge of the board may have harbors. There are 2 main types of harbors: Generic Harbor and Special Harbor.
 Player could exchange 3 identical resources for any 1 other resource during trade phase if owns a generic Harbor.
@@ -48,21 +48,33 @@ City can only be upgraded from settlement. Each city could gain 2 resource if po
 
 
 ## 1 Design
-- Random Variables:
+### Random Variables:
 Due to the real game rules and workload consideration, I listed all possible random variables that might be used in this final project. The Random variables 1 and 2 will definitely appear as random variables. Random 3 and 4, indtead, might be set as constant variables based on the workload and complexity of other projects. 	
 Random Variables 1: The number of points obtained by rolling two dice. It should be simulated as triangular.
 Random Variables 2: The resource distribution of each resource’s bricks.
 Random Variables 3: The chance of earning resource of each resource’s bricks. 
-Random Variables 4: The distributions of harbors.
+
+[//]: # (Random Variables 4: The distributions of harbors.)
 
 - Pre-request for this Monte Carlo Simulation:
 Each simulation describes the whole game process. Starting from default resources, two dice are rolled repeatedly to represent each turn. During each turn, the user could make actions such as trade with bank, trade with port, and building instructions including road, settlement, and city.  
-We do not account for robber, player of development card, largest army, longest road, and any trade with other players. 
-Simulation would stop when the player collect 10 points using settlements and cities. 
-- 2 Validating
+We do not account for robber(Including robber action and resource rub at 7), player of development card, the largest army, the longest road, any trade with other players, and all harbors were set as universal harbor. 
+Simulation would stop when the player collect 10 points using settlements and cities.
+### 2 Validating
 
-- 3 Experiment & Predictions
+### 3 Experiment & Predictions
+####  Basic Assumptions
+- The number of rolling 2 dices will conform triangle distribution between [2, 12]
+- Player would not trade without building demands
+- Player would only choose the point has the highest probability as the default point
+- Player would only build roads to the neighbor point has the highest probability unless on harbor prefer action
 
-## Phrase 2:
+#### Hypothesis 1
+`Assume upgrading a city can help get the required vp points faster than case 2 building a new settlement. `
 
-## Phrase 3: 
+#### Hypothesis 2
+`Assume getting a particular port can help get the required vp points faster than upgrading a ctiy which could help get more resources.`
+
+# Phrase 2:
+
+# Phrase 3: 

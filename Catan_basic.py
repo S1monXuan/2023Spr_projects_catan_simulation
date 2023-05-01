@@ -1,9 +1,10 @@
 import random
 import pandas as pd
-from Elements import Player, Terrain, Point
+from Elements import Player, Terrain
 import matplotlib.pyplot as plt
 import warnings
 import csv
+import numpy as np
 warnings.filterwarnings('ignore')
 
 
@@ -611,6 +612,9 @@ def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor
 def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> list:
     """
     Support function to find the shortest path start from start_point, Using BFS
+    Idea from:
+        Wikipedia contributors. “Breadth-first Search.” Wikipedia, 27 Feb. 2023, en.wikipedia.org/wiki/Breadth-first_search.
+
     :param start_point: the start point for the path, default will not be the harbor_point_list
     :param pp: point-point list
     :param harbor_point_list: list contains all possible result
@@ -874,6 +878,19 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.savefig(output_name)
     plt.close()
 
+    # statistic_rec1 = np.histogram(y_rec1, bins=20)
+    # statistic_rec2 = np.histogram(y_rec2, bins=20)
+    title = f"Statistic_Vis_for_Hypothesis_{hypo}"
+    bins = np.linspace(0, max_round, max_round // 10)
+    plt.xlabel("Times")
+    plt.ylabel("Used Rounds")
+    plt.hist(y_rec1, bins, alpha=0.5)
+    plt.hist(y_rec2, bins, alpha=0.5)
+    plt.legend([round1_type, round2_type])
+    output_name = './data/output/' + title
+    plt.savefig(output_name)
+    plt.close()
+
 
 def board_save(point_terrain_dict: dict, idx_terrain_dict:dict) -> None:
     """
@@ -910,6 +927,22 @@ def board_save(point_terrain_dict: dict, idx_terrain_dict:dict) -> None:
         writer.writerows(header)
 
 
+def dice_visualization(num_list):
+    """
+    Visualize the distribution of rolling 2 dices
+    :param num_list:
+    :return:
+    """
+    x_val = [*range(2, 13, 1)]
+    plt.bar(x_val, num_list)
+    plt.ylabel("Roll times")
+    plt.xlabel("Roll Value")
+    title = "Dice_visualization"
+    output_name = './data/output/' + title
+    plt.savefig(output_name)
+    plt.close()
+
+
 if __name__ == '__main__':
     """
     Variable for all used data structures
@@ -938,11 +971,12 @@ if __name__ == '__main__':
         harbor_point_list: [points], shows all points that owns a harbor 
     """
     init_data_url = './data/init/'
-    # test for dice rolls(single)
-    test = [0, 0, 0, 0, 0, 0]
-    for i in range(10000):
-        test[roll_dice() - 1] += 1
-    print(f'the distribution of dice rolls: {test}')
+
+    # visualize dice rolling distribution
+    test = [0] * 11
+    for _ in range(100000):
+        test[roll_dice() + roll_dice() - 2] += 1
+    dice_visualization(test)
 
     # test for initiate map
     ph, pp, tp = initiate_map(init_data_url)
@@ -956,11 +990,18 @@ if __name__ == '__main__':
     board_save(point_terrain_dict, idx_terrain_dict)
 
     ## simulation part
-    simulation_times, max_round, vp, epoch = 1000, 300, 10, 50
+    simulation_times, max_round, vp, epoch = 1000, 200, 10, 50
     val1 = []
     val2 = []
 
     for i in range(simulation_times):
+        # cereate a new board
+        harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
+        terrain_type_list = get_terrain_resource()
+        terrain_number_list = get_roll_num_list(terrain_type_list)
+        idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
+        point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
+
         player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
                                    point_probability)
         player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
@@ -978,11 +1019,17 @@ if __name__ == '__main__':
     vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
 
     # hypothesis 2 simulation:
-    simulation_times, max_round, vp, epoch = 1000, 300, 10, 50
+    # simulation_times, max_round, vp, epoch = 1000, 200, 10, 50
     val1 = []
     val2 = []
 
     for i in range(simulation_times):
+        harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
+        terrain_type_list = get_terrain_resource()
+        terrain_number_list = get_roll_num_list(terrain_type_list)
+        idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
+        point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
+
         player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
                                    point_probability)
         player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,

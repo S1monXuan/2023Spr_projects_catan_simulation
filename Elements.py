@@ -1,7 +1,7 @@
 class Point:
     def __init__(self, idx):
-        self.idx = 0;
-        self.neighbors = [];
+        self.idx = 0
+        self.neighbors = []
 
     def add_neighbor(self, neighbor):
         self.neighbors.append(neighbor)
@@ -14,13 +14,11 @@ class Terrain:
     def __init__(self, resource, num, point_li):
         self.resource = resource
         self.num = num
-        # self.harbor = []
         self.point = point_li
 
     def create_element(self, resource, num, point_li):
         self.resource = resource
         self.num = num
-        # self.harbor = harbor_li
         self.point = point_li
 
 
