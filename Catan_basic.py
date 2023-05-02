@@ -155,7 +155,7 @@ def point_buildable(point_list: list, point2: int, pp: list, reachable_list: lis
     return point2 not in not_buildable_list
 
 
-def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict, point_probability):
+def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict, point_probability, strategy):
     """
         Generate a player using current border
     :param point_probability_sort_list: list stores all point sorted via their probability
@@ -187,6 +187,7 @@ def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_te
 
     player.vp = 2
     player.road_num = 2
+    player.strategy = strategy
     print('player setting created, bellowed is the original situation ')
     player.print_player()
     return player
@@ -670,13 +671,13 @@ def get_resource(player: Player, terrain_dict: dict) -> None:
         for building_point in player_buildings:
             for [des_point_list, point_resource] in terrain_resources:
                 player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
-    # else: # dice_num == 7
-    #     # if the dice rolls 7, player must discard resources if the resources number larger than 7
-    #     # hypothesis: player always discard the most resources type
-    #     discard_num = sum(player.resources_list) // 2
-    #     while discard_num > 0:
-    #         player.discard_one_resource()
-    #         discard_num -= 1
+    else: # dice_num == 7
+        # if the dice rolls 7, player must discard resources if the resources number larger than 7
+        # hypothesis: player always discard the most resources type
+        discard_num = sum(player.resources_list) // 2
+        while discard_num > 0:
+            player.discard_one_resource()
+            discard_num -= 1
 
 
 def get_rec_list(player: Player):
@@ -935,11 +936,11 @@ if __name__ == '__main__':
         point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
 
         player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability)
+                                   point_probability, "settlement_prefer")
         player2 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability)
+                                   point_probability, "city_prefer")
         player3 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability)
+                                   point_probability, "harbor_prefer")
 
         times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = simulation_process(
             player1, terrain_dict, point_probability, pp, harbor_point_list, 1, max_round=max_round, vp=vp, epoch=epoch)

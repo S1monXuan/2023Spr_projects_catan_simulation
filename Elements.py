@@ -36,6 +36,7 @@ class Player:
         self.cities = []
         self.resources_list = [0, 0, 0, 0, 0]
         self.road_num = 0
+        self.strategy = ""
 
     def set_resource_list(self, resource_list):
         self.resources_list = resource_list
@@ -84,9 +85,30 @@ class Player:
         elif trade_type == 1:
             self.resources_list[resource_id_have] -= 2
 
+    def get_max(self, resource_list):
+        num = -1
+        idx = -1
+        for resource_idx in resource_list:
+            if self.resources_list[resource_idx] > num:
+                num = self.resources_list[resource_idx]
+                idx = resource_idx
+        return num, idx
+
     def discard_one_resource(self):
-        max_num = max(self.resources_list)
-        max_idx = self.resources_list.index(max_num)
+
+        if self.strategy == "settlement_prefer" or self.strategy == "harbor_prefer":
+            resource_need = [0, 1, 3, 4]
+            resource_latent = [2]
+        elif self.strategy == "city_prefer":
+            resource_need = [2, 3]
+            resource_latent = [0, 1, 4]
+
+        # get_max_id in rsource_latent:
+        max_num, max_idx = self.get_max(resource_latent)
+
+        # check the file in resource needed if all resource_latent was used
+        if max_num == 0:
+            max_num, max_idx = self.get_max(resource_need)
         self.resources_list[max_idx] -= 1
 
     def print_player(self):
