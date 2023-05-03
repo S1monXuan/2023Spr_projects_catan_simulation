@@ -178,10 +178,9 @@ Random Variables 3: The chance of earning resource of each resource’s bricks(N
 
 ## Basic Assumptions
 
-- The number of rolling 2 dices will conform triangle distribution between [2, 12]
-- Player would not trade without building demands
-- Player would only choose the point has the highest probability as the default point
-- Player would only build roads to the neighbor point has the highest probability unless on harbor prefer action
+1. The number of rolling 2 dices will conform triangle distribution between [2, 12]
+2. Player would only choose the point has the highest probability as the default point
+3. Player would only build roads to the neighbor point has the highest probability unless on harbor prefer action
 
 ## Hypothesis
 

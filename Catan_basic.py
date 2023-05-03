@@ -870,7 +870,6 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
     if strategy == 3:
         dest_harbor_point, dest_path = shortest_harbor_path(player.settlements, player.reachable_points, pp,
                                                             harbor_point_list)
-
     ## for settlement prefer strategy
     max_round, vp, gamePass = max_round, vp, False
     reclist = get_rec_list(player)
@@ -888,15 +887,12 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
                                 dest_harbor_point)
         # step 3: store current status into resource recorder for later display
         reclist = get_rec_list(player)
-
         # step 4: check if player wins, if so, display and return all results
         gamePass = check_game_pass(player, time, vp, epoch, max_round)
         if gamePass:
             used_round = time
             break
-
     resRecoder = ResRecoder(used_round, gamePass)
-
     return resRecoder, reclist
 
 
