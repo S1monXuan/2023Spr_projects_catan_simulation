@@ -1,3 +1,4 @@
+data/border/
 # Exclude PyCharm IDE settings:
 .idea
 .idea/

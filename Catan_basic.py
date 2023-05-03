@@ -953,7 +953,7 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.close()
 
 
-def board_save(point_terrain_dict: dict, idx_terrain_dict: dict) -> None:
+def board_save(point_terrain_dict: dict, idx_terrain_dict: dict, filename: str) -> None:
     """
     Save the current board situation into a csv file
     :param point_terrain_dict:
@@ -983,7 +983,7 @@ def board_save(point_terrain_dict: dict, idx_terrain_dict: dict) -> None:
         print(resource)
 
     # stroe situation into a csvfile
-    with open('data/output/border.csv', 'w', newline='') as file:
+    with open(filename, 'w', newline='') as file:
         writer = csv.writer(file, quoting=csv.QUOTE_ALL, delimiter=',')
         writer.writerows(header)
 
@@ -1048,7 +1048,7 @@ if __name__ == '__main__':
     point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
 
     ## store the current board situation
-    board_save(point_terrain_dict, idx_terrain_dict)
+    board_save(point_terrain_dict, idx_terrain_dict, 'data/output/border.csv')
 
     ## simulation part
     simulation_times, max_round, vp, epoch = 1000, 1000, 8, 50
@@ -1063,6 +1063,8 @@ if __name__ == '__main__':
         terrain_number_list = get_roll_num_list(terrain_type_list)
         idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
         point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
+        filename = 'data/border/border' + str(i) + '.csv'
+        board_save(point_terrain_dict, idx_terrain_dict, filename)
 
         player1 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
                                    point_probability, "settlement_prefer")
