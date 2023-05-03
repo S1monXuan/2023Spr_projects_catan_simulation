@@ -948,6 +948,8 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.savefig(output_name)
     plt.close()
 
+    bar_vis(round_rec1, round_rec2, round1_type, round2_type)
+
 
 def board_save(point_terrain_dict: dict, idx_terrain_dict: dict, filename: str) -> None:
     """
@@ -996,6 +998,24 @@ def dice_visualization(num_list):
     plt.xlabel("Roll Value")
     title = "Dice_visualization"
     output_name = './data/output/' + title
+    plt.savefig(output_name)
+    plt.close()
+
+
+def bar_vis(val1:list, val2:list, name1, name2):
+    res = [0, 0, 0]
+    for i in range(len(val1)):
+        if val1[i] < val2[i]:
+            res[0] += 1
+        elif val1[i] > val2[i]:
+            res[1] += 1
+        else:
+            res[2] += 1
+
+    title = "pie_" + name1 + "_" + name2
+    plt.pie(res, labels=[name1, name2, "draw"])
+    output_name = './data/output/' + title
+    plt.legend([name1, name2, "draw"])
     plt.savefig(output_name)
     plt.close()
 
