@@ -1,10 +1,11 @@
 import random
 import pandas as pd
-from Elements import Player, Terrain
+from Elements import Player, Terrain, ResourceDict, RecordList, ResRecoder
 import matplotlib.pyplot as plt
 import warnings
 import csv
 import numpy as np
+
 warnings.filterwarnings('ignore')
 
 
@@ -155,7 +156,8 @@ def point_buildable(point_list: list, point2: int, pp: list, reachable_list: lis
     return point2 not in not_buildable_list
 
 
-def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict, point_probability, strategy):
+def player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict, point_probability,
+                     strategy):
     """
         Generate a player using current border
     :param point_probability_sort_list: list stores all point sorted via their probability
@@ -208,7 +210,13 @@ def own_harbor(player: Player, harbor_point_list: dict) -> bool:
     return False
 
 
-def resource_compare_generator(player, trade_rate, needed_dict, target_list):
+def get_trade_rate(player, harbor_point_list) -> int:
+    if len(harbor_point_list) == 0:
+        return 4
+    return 3 if own_harbor(player, harbor_point_list) else 4
+
+
+def resource_compare_generator(player, trade_rate, resDic: ResourceDict):
     """
     Calculate the turnable resources number
     :param player: palyer
@@ -222,11 +230,11 @@ def resource_compare_generator(player, trade_rate, needed_dict, target_list):
     resource_turn = 0  # source could get via trading
     for idx in range(5):
         # check if the needed resource is redundant
-        if idx in target_list:
-            if needed_dict[idx] < player.resources_list[idx]:
-                resource_turn += int(max(player.resources_list[idx] - needed_dict[idx], 0) / trade_rate)
+        if idx in resDic.target_list:
+            if resDic.needed_dict[idx] < player.resources_list[idx]:
+                resource_turn += int(max(player.resources_list[idx] - resDic.needed_dict[idx], 0) / trade_rate)
             else:
-                resource_lack += max(needed_dict[idx] - player.resources_list[idx], 0)
+                resource_lack += max(resDic.needed_dict[idx] - player.resources_list[idx], 0)
         else:
             resource_turn += int(max(player.resources_list[idx], 0) / trade_rate)
     return resource_lack, resource_turn
@@ -246,12 +254,11 @@ def city_possible(player: Player, harbor_point_list):
     if resources_list[2] >= 3 and resources_list[3] >= 2: return True
 
     # check if resource is suitable with trading
-    trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-    needed_dict = {2: 3, 3: 2}
-    resource_list = [0, 1, 4]
-    target_list = [2, 3]
+    trade_rate = get_trade_rate(player, harbor_point_list)
 
-    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, needed_dict, target_list)
+    resDic = ResourceDict("city")
+
+    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, resDic)
 
     return resource_lack <= resource_turn
 
@@ -287,12 +294,11 @@ def settlement_possible(player: Player, harbor_point_list, pp):
     if resources_list[0] >= 1 and resources_list[1] >= 1 and resources_list[3] >= 1 and resources_list[4] >= 1:
         return True
     # check if resource is suitable with trading
-    trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-    needed_dict = {0: 1, 1: 1, 3: 1, 4: 1}
-    resource_list = [2]
-    target_list = [0, 1, 3, 4]
+    trade_rate = get_trade_rate(player, harbor_point_list)
 
-    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, needed_dict, target_list)
+    resDic = ResourceDict("settlement")
+
+    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, resDic)
 
     return resource_lack <= resource_turn
 
@@ -312,19 +318,18 @@ def road_possible(player: Player, harbor_point_list):
         return True
 
     # check if resource is suitable with trading
-    trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-    needed_dict = {0: 1, 1: 1}
-    resource_list = [2, 3, 4]
-    target_list = [0, 1]
+    trade_rate = get_trade_rate(player, harbor_point_list)
 
-    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, needed_dict, target_list)
+    resDic = ResourceDict("road")
+
+    resource_lack, resource_turn = resource_compare_generator(player, trade_rate, resDic)
 
     return resource_lack <= resource_turn
 
 
-def trade_supporter(player, trade_rate, needed_dict, resource_list, target_list):
+def trade_supporter(player, trade_rate, resDic: ResourceDict):
     """
-    Trade resource based on the needed action
+    Trade resource based on the needed action, trade every time it could trade
     :param player: player obejct
     :param trade_rate: 4 without harbor, else 3
     :param needed_dict: dict stores all needed function
@@ -332,10 +337,10 @@ def trade_supporter(player, trade_rate, needed_dict, resource_list, target_list)
     :param target_list: list stores all needed resource
     :return:
     """
-    for need_id, need_num in needed_dict.items():
+    for need_id, need_num in resDic.needed_dict.items():
         if player.resources_list[need_id] < need_num:
             need_res = need_num - player.resources_list[need_id]
-            for idx in resource_list:
+            for idx in resDic.resource_list:
                 if need_res == 0:
                     continue
                 cur_res = int(player.resources_list[idx] / trade_rate)
@@ -344,11 +349,11 @@ def trade_supporter(player, trade_rate, needed_dict, resource_list, target_list)
                 player.resources_list[need_id] += trans_res
                 need_res -= trans_res
 
-            for idx in target_list:
+            for idx in resDic.target_list:
                 if need_res == 0:
                     continue
                 if idx != need_id:
-                    cur_res = int((player.resources_list[idx] - needed_dict[idx]) / trade_rate)
+                    cur_res = int((player.resources_list[idx] - resDic.needed_dict[idx]) / trade_rate)
                     trans_res = min(cur_res, need_res)
                     player.resources_list[idx] -= trans_res * trade_rate
                     player.resources_list[need_id] += trans_res
@@ -364,12 +369,11 @@ def build_a_city(player, point_probability, harbor_point_list):
     :return: void, player city and settlement list is change already
     """
     # trade if resource is not sufficient
-    trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-    needed_dict = {2: 3, 3: 2}
-    resource_list = [0, 1, 4]
-    target_list = [2, 3]
+    trade_rate = get_trade_rate(player, harbor_point_list)
 
-    trade_supporter(player, trade_rate, needed_dict, resource_list, target_list)
+    resDic = ResourceDict("city")
+
+    trade_supporter(player, trade_rate, resDic)
 
     # build a city from current settlement which has the highest probability
     high_point, high_prob = player.settlements[0], point_probability[player.settlements[0]]
@@ -394,12 +398,11 @@ def build_a_settlement(player, point_probability, pp, harbor_point_list):
     :return: void, player city and settlement list is change already
     """
     # trade if resource is not sufficient
-    trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-    needed_dict = {0: 1, 1: 1, 3: 1, 4: 1}
-    resource_list = [2]
-    target_list = [0, 1, 3, 4]
+    trade_rate = get_trade_rate(player, harbor_point_list)
 
-    trade_supporter(player, trade_rate, needed_dict, resource_list, target_list)
+    resDic = ResourceDict("settlement")
+
+    trade_supporter(player, trade_rate, resDic)
 
     # find all point that suitable for build a settlement
     # get all point with building
@@ -425,7 +428,7 @@ def build_a_settlement(player, point_probability, pp, harbor_point_list):
             res_prob = res_prob
 
     # build settlement in point
-    for idx in target_list:
+    for idx in resDic.target_list:
         player.resources_list[idx] -= 1
     player.settlements.append(res_point)
     player.vp += 1
@@ -443,12 +446,11 @@ def build_a_road(player, point_probability, pp, harbor_point_list, special_point
     """
     if special_point == -1:
         # trade if resource is not sufficient
-        trade_rate = 3 if own_harbor(player, harbor_point_list) else 4
-        needed_dict = {0: 1, 1: 1}
-        resource_list = [2, 3, 4]
-        target_list = [0, 1]
+        trade_rate = get_trade_rate(player, harbor_point_list)
 
-        trade_supporter(player, trade_rate, needed_dict, resource_list, target_list)
+        resDic = ResourceDict("road")
+
+        trade_supporter(player, trade_rate, resDic)
 
         # find all possible point for road building
         building_point = []
@@ -468,7 +470,7 @@ def build_a_road(player, point_probability, pp, harbor_point_list, special_point
                 target_prob = point_probability[point]
 
         # build the point in target point
-        for idx in target_list:
+        for idx in resDic.target_list:
             player.resources_list[idx] -= 1
         player.reachable_points.append(target_point)
         player.road_num += 1
@@ -500,12 +502,9 @@ def city_upgrade_prefer(player: Player, terrain_dict, point_probability, pp, har
     :param pp:
     :param harbor_point_list:
     """
-    # check if resource available for upgrading a city: while loop
-    while city_possible(player, harbor_point_list):
-        build_a_city(player, point_probability, harbor_point_list)
-        # check if resource available for building a settlement: while loop
     # building a settlement can only be considered if there does not have any settlement waiting for upgrading
     if len(player.settlements) == 0 or len(player.cities) == 4:
+        trade_supporter(player, get_trade_rate(player, harbor_point_list), ResourceDict("settlement"))
         while settlement_possible(player, harbor_point_list, pp):
             build_a_settlement(player, point_probability, pp, harbor_point_list)
             # check if resource available for building a road + settlement: for loop * 2
@@ -514,6 +513,13 @@ def city_upgrade_prefer(player: Player, terrain_dict, point_probability, pp, har
                 build_a_road(player, point_probability, pp, harbor_point_list)
             if settlement_possible(player, harbor_point_list, pp):
                 build_a_settlement(player, point_probability, pp, harbor_point_list)
+
+    trade_supporter(player, get_trade_rate(player, harbor_point_list), ResourceDict("city"))
+    # check if resource available for upgrading a city: while loop
+    while city_possible(player, harbor_point_list):
+        build_a_city(player, point_probability, harbor_point_list)
+        # check if resource available for building a settlement: while loop
+
 
 
 def settlement_build_prefer(player: Player, terrain_dict, point_probability, pp, harbor_point_list) -> None:
@@ -532,10 +538,12 @@ def settlement_build_prefer(player: Player, terrain_dict, point_probability, pp,
         # two possible situation to consider upgrade to a city:
         #     1. the settlement reaches highest demands
         #     2. no more road to build, but have settlement ungraded
+        trade_supporter(player, get_trade_rate(player, harbor_point_list), ResourceDict("city"))
         while city_possible(player, harbor_point_list):
             build_a_city(player, point_probability, harbor_point_list)
             # check if resource available for building a settlement: while loop
 
+    trade_supporter(player, get_trade_rate(player, harbor_point_list), ResourceDict("settlement"))
     while settlement_possible(player, harbor_point_list, pp):
         build_a_settlement(player, point_probability, pp, harbor_point_list)
         # check if resource available for building a road + settlement: for loop * 2
@@ -566,6 +574,7 @@ def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, har
         settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
     else:
         # build road to the nearest harbor until it build a settlement in harbor
+        trade_supporter(player, get_trade_rate(player, harbor_point_list), ResourceDict("road"))
         while road_possible(player, harbor_point_list) and len(harbor_path) > 0:
             # road is buildable and the harbor point is reachable
             cur_road = harbor_path.pop(0)
@@ -671,7 +680,7 @@ def get_resource(player: Player, terrain_dict: dict) -> None:
         for building_point in player_buildings:
             for [des_point_list, point_resource] in terrain_resources:
                 player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
-    else: # dice_num == 7
+    else:  # dice_num == 7
         # if the dice rolls 7, player must discard resources if the resources number larger than 7
         # hypothesis: player always discard the most resources type
         discard_num = sum(player.resources_list) // 2
@@ -696,7 +705,7 @@ def get_rec_list(player: Player):
     ore_rec.append(player.resources_list[2])
     grain_rec.append(player.resources_list[3])
     wool_rec.append(player.resources_list[4])
-    return vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+    return RecordList(vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec)
 
 
 def check_game_pass(player, time, vp, epoch, max_round):
@@ -730,7 +739,7 @@ def check_game_pass(player, time, vp, epoch, max_round):
 
 
 def simulation_process(player, terrain_dict, point_probability, pp, harbor_point_list, strategy, max_round=200, vp=10,
-                          epoch=50):
+                       epoch=50):
     """
 
     :param player:
@@ -750,7 +759,7 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
 
     ## for settlement prefer strategy
     max_round, vp, gamePass = max_round, vp, False
-    vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+    reclist = get_rec_list(player)
     used_round = max_round
     for time in range(max_round):
         # step 1: get resource
@@ -764,7 +773,7 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
             harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
                                 dest_harbor_point)
         # step 3: store current status into resource recorder for later display
-        vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = get_rec_list(player)
+        reclist = get_rec_list(player)
 
         # step 4: check if player wins, if so, display and return all results
         gamePass = check_game_pass(player, time, vp, epoch, max_round)
@@ -772,10 +781,13 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
             used_round = time
             break
 
-    return used_round, gamePass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec
+    resRecoder = ResRecoder(used_round, gamePass)
+
+    return resRecoder, reclist
 
 
-def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_type: str, hypo: int, simulation_times=1000):
+def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_type: str, hypo: int,
+                  simulation_times=1000):
     """
     Create plot for number store
     :param round_rec1:
@@ -810,21 +822,26 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.savefig(output_name)
     plt.close()
 
-    # statistic_rec1 = np.histogram(y_rec1, bins=20)
-    # statistic_rec2 = np.histogram(y_rec2, bins=20)
+    mean1 = sum(y_rec1) / len(y_rec1)
+    mean2 = sum(y_rec2) / len(y_rec2)
+
+
     title = f"Statistic_Vis_for_Hypothesis_{hypo}"
     bins = np.linspace(0, max_round, max_round // 10)
     plt.xlabel("Times")
     plt.ylabel("Used Rounds")
     plt.hist(y_rec1, bins, alpha=0.5)
+    plt.axvline(x=mean1, color='blue', linestyle='-', alpha=0.5)
     plt.hist(y_rec2, bins, alpha=0.5)
+    plt.axvline(x=mean2, color='orange', linestyle='-', alpha=0.5)
     plt.legend([round1_type, round2_type])
     output_name = './data/output/' + title
     plt.savefig(output_name)
     plt.close()
 
 
-def board_save(point_terrain_dict: dict, idx_terrain_dict:dict) -> None:
+
+def board_save(point_terrain_dict: dict, idx_terrain_dict: dict) -> None:
     """
     Save the current board situation into a csv file
     :param point_terrain_dict:
@@ -842,7 +859,7 @@ def board_save(point_terrain_dict: dict, idx_terrain_dict:dict) -> None:
     for point, terrains in point_terrain_dict.items():
         for terrainidx in terrains:
             terrain = idx_terrain_dict[terrainidx]
-            if terrain.resource == 5: continue # find dessert
+            if terrain.resource == 5: continue  # find dessert
             resource_list[terrain.resource][terrain.num - 1] += 1
 
     for resourceli in resource_list:
@@ -922,7 +939,7 @@ if __name__ == '__main__':
     board_save(point_terrain_dict, idx_terrain_dict)
 
     ## simulation part
-    simulation_times, max_round, vp, epoch = 1000, 200, 10, 50
+    simulation_times, max_round, vp, epoch = 1000, 1000, 8, 50
     val1 = []
     val2 = []
     val3 = []
@@ -942,19 +959,16 @@ if __name__ == '__main__':
         player3 = player_generater(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
                                    point_probability, "harbor_prefer")
 
-        times1, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec = simulation_process(
+        recoder1, rec1 = simulation_process(
             player1, terrain_dict, point_probability, pp, harbor_point_list, 1, max_round=max_round, vp=vp, epoch=epoch)
-        times2, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = simulation_process(player2, terrain_dict, point_probability, pp, harbor_point_list, 2, max_round=max_round,
-                              vp=vp, epoch=epoch)
-        times3, game_pass, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec \
-            = simulation_process(player3, terrain_dict, point_probability, pp, harbor_point_list, 3,
-                                 max_round=max_round,
-                                 vp=vp, epoch=epoch)
+        recoder2, rec2 = simulation_process(
+            player2, terrain_dict, point_probability, pp, harbor_point_list, 2, max_round=max_round, vp=vp, epoch=epoch)
+        recoder3, rec3 = simulation_process(
+            player3, terrain_dict, point_probability, pp, harbor_point_list, 3, max_round=max_round, vp=vp, epoch=epoch)
 
-        val1.append(times1)
-        val2.append(times2)
-        val3.append(times3)
+        val1.append(recoder1.used_round)
+        val2.append(recoder2.used_round)
+        val3.append(recoder3.used_round)
 
     vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
     vis_two_round(val3, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)

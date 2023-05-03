@@ -31,7 +31,7 @@ class Player:
         cities stores all points that have city
         """
         self.vp = 0  # victory points
-        self.reachable_points = [] # points connected via roads
+        self.reachable_points = []  # points connected via roads
         self.settlements = []
         self.cities = []
         self.resources_list = [0, 0, 0, 0, 0]
@@ -64,27 +64,6 @@ class Player:
         """
         return self.resources_list[resource_id - 1]
 
-    def trade(self, resource_id_have: int, resource_id_want: int, trade_type: int):
-        """
-        Trade functions helps process trade function
-        :param resource_id_have: The type of resource player HAVE, the number would decrease
-        :param resource_id_want: The type of resource player WANT, the number would increase
-        :param trade_type: Trade type
-            3: trade without any harbor, trading rate: 4 : 1
-            2: trade when having a generic harbor
-            1: trade when having a specific harbor
-
-        :return: nothing, but the resources_list would change due to the trade process
-        """
-        self.resources_list[resource_id_want] += 1
-
-        if trade_type == 3:
-            self.resources_list[resource_id_have] -= 4
-        elif trade_type == 2:
-            self.resources_list[resource_id_have] -= 3
-        elif trade_type == 1:
-            self.resources_list[resource_id_have] -= 2
-
     def get_max(self, resource_list):
         num = -1
         idx = -1
@@ -95,7 +74,6 @@ class Player:
         return num, idx
 
     def discard_one_resource(self):
-
         if self.strategy == "settlement_prefer" or self.strategy == "harbor_prefer":
             resource_need = [0, 1, 3, 4]
             resource_latent = [2]
@@ -115,3 +93,32 @@ class Player:
         print(f'player vp: {self.vp}, settlement list: {self.settlements}, city list: {self.cities} \n'
               f'reachable points list: {self.reachable_points} \n'
               f'resources list: {self.resources_list}')
+
+
+class ResourceDict:
+    def __init__(self, resource_type: str):
+        self.needed_dict = {0: 1, 1: 1} if resource_type == "road" else {0: 1, 1: 1, 3: 1, 4: 1} if \
+            resource_type == "settlement" else {2: 3, 3: 2}
+        self.resource_list = [2, 3, 4] if resource_type == "road" else [2] if \
+            resource_type == "settlement" else [0, 1, 4]
+        self.target_list = [0, 1] if resource_type == "road" else [0, 1, 3, 4] if \
+            resource_type == "settlement" else [2, 3]
+
+
+class RecordList:
+    def __init__(self, vp_rec, set_rec, city_rec, road_rec, brick_rec, lum_rec, ore_rec, grain_rec, wool_rec):
+        self.vp_rec = vp_rec
+        self.set_rec = set_rec
+        self.city_rec = city_rec
+        self.road_rec = road_rec
+        self.brick_rec = brick_rec
+        self.lum_rec = lum_rec
+        self.ore_rec = ore_rec
+        self.grain_rec = grain_rec
+        self.wool_rec = wool_rec
+
+
+class ResRecoder:
+    def __init__(self, used_round, gamePass):
+        self.used_round = used_round
+        self.gamePass = gamePass
