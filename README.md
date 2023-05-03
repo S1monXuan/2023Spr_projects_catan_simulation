@@ -152,6 +152,14 @@ class ResRecoder:
 
 # Monte Carlo Simulation
 
+## Special for this simulation
+
+1. Though we compare player with different strategy, they will not compete with each other. All players have a private border.
+2. Though player still need to discard resources if they roll 7, no terrain were detained by robber. Robber will only stay in dessert.
+3. All harbor in this simulation are universal harbors(3 : 1).
+4. All players in this simulation would not change their strategy until end of game.
+5. We do not have development card in this simulation. Besides, the longest road and the longest army would not implement in this simulation.
+
 ## Random Variables:
 
 Due to the real game rules and workload consideration, I listed all possible random variables that might be used in this final project.
@@ -175,14 +183,33 @@ Random Variables 3: The chance of earning resource of each resource’s bricks(N
 - Player would only choose the point has the highest probability as the default point
 - Player would only build roads to the neighbor point has the highest probability unless on harbor prefer action
 
+## Hypothesis
+
+We simulate 1000 times for each hypothesis. Everytime a simulation ends, the used round timer would output and stored in a list. Each hypothesis would output 2 list stores all round for two different situations. Each simulation would use a new board.
+
 ### Hypothesis 1
 
 `Assume upgrading a city can help get the required vp points faster than case 2 building a new settlement. `
+The hypothesis compares two strategy: upgrading a city prefer and build a new settlement prefer. From the output, the resulting average used rounds of settlement prefer is 124.916, the resulting average used rounds of city prefer is 93.127.
+From the histogram, we can see that it is more rewarding to adopt city prefer methods rather than settlement.
+Thus, this hypothesis is valid.
+![Image text](data/output/Statistic_Vis_for_Hypothesis_1.png)
 
 ### Hypothesis 2
 
 `Assume getting a particular port can help get the required vp points faster than upgrading a ctiy which could help get more resources.`
+The hypothesis compares two strategy: upgrading a city prefer and build a new settlement prefer. From the output, the resulting average used rounds of harbor prefer is 106.492, the resulting average used rounds of city prefer is 93.127.
+From the histogram, we can see that it is more rewarding to adopt city prefer methods rather than settlement.
+Thus, this hypothesis is valid.
+![Image text](data/output/Statistic_Vis_for_Hypothesis_2.png)
 
-# Phrase 2:
+## Citations:
 
-# Phrase 3:
+1. Catan Photo:
+Catan Universe - Changelog 2.3.2 - Steam News. 19 Apr. 2023, store.steampowered.com/news/app/544730/view/5978007465995605824?l=english.
+2. Catan Introduction Wiki:
+Catan. “Catan.” Wikipedia, 11 Apr. 2023, en.wikipedia.org/wiki/Catan.
+3. Catan rules:
+“Game Rules.” CATAN, www.catan.com/understand-catan/game-rules.
+4. BFS Tree Idea:
+Wikipedia contributors. “Breadth-first Search.” Wikipedia, 27 Feb. 2023, en.wikipedia.org/wiki/Breadth-first_search.

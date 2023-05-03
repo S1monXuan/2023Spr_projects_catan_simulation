@@ -792,7 +792,7 @@ def get_resource(player: Player, terrain_dict: dict) -> None:
     else:  # dice_num == 7
         # if the dice rolls 7, player must discard resources if the resources number larger than 7
         # hypothesis: player always discard the most resources type
-        discard_num = sum(player.resources_list) // 2
+        discard_num = sum(player.resources_list) // 2 if sum(player.resources_list) > 7 else 0
         while discard_num > 0:
             player.discard_one_resource()
             discard_num -= 1
@@ -1051,7 +1051,7 @@ if __name__ == '__main__':
     board_save(point_terrain_dict, idx_terrain_dict, 'data/output/border.csv')
 
     ## simulation part
-    simulation_times, max_round, vp, epoch = 1000, 1000, 8, 50
+    simulation_times, max_round, vp, epoch = 1000, 300, 8, 50
     val1 = []
     val2 = []
     val3 = []
@@ -1083,6 +1083,8 @@ if __name__ == '__main__':
         val1.append(recoder1.used_round)
         val2.append(recoder2.used_round)
         val3.append(recoder3.used_round)
+
+    print(f"Avg for val1: {sum(val1) / len(val1)}, val2: {sum(val2) / len(val2)}, val3: {sum(val3) / len(val3)}")
 
     vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
     vis_two_round(val3, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)
