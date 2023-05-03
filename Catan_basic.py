@@ -13,6 +13,11 @@ def roll_dice() -> int:
     """
     Rolling a dice, would return random number between 1 - 6
     :return: Integer between 1 - 6
+    >>> tst = np.array([roll_dice() for _ in range(100)])
+    >>> (tst > 0).all()
+    True
+    >>> (tst < 7).all()
+    True
     """
     return random.randint(1, 6)
 
@@ -59,6 +64,14 @@ def get_terrain_resource():
     """
     Designate resource to each terrain in random
     :return: A list of resource type of each terrain
+    >>> tst = get_terrain_resource()
+    >>> len(tst)
+    19
+    >>> tst_res = [0, 0, 0, 0, 0, 0]
+    >>> for val in tst:
+    ...     tst_res[val] += 1
+    >>> tst_res
+    [3, 4, 3, 4, 4, 1]
     """
     terrain_resource_list = [3, 4, 3, 4, 4, 1]
     res = []
@@ -201,6 +214,18 @@ def own_harbor(player: Player, harbor_point_list: dict) -> bool:
     :param player: a player object
     :param harbor_point_list: a harbor stores all points with harbor
     :return: True if a player owns a harbor, False if not
+    >>> p = Player()
+    >>> p.settlements = [0]
+    >>> p.cities = [1]
+    >>> harb_list1 = [2, 3, 4, 5]
+    >>> harb_list2 = [1]
+    >>> harb_list3 = [0, 2, 3, 4]
+    >>> own_harbor(p, harb_list1)
+    False
+    >>> own_harbor(p, harb_list2)
+    True
+    >>> own_harbor(p, harb_list3)
+    True
     """
     possible_point = player.settlements.copy()
     possible_point.extend(player.cities)
@@ -211,6 +236,24 @@ def own_harbor(player: Player, harbor_point_list: dict) -> bool:
 
 
 def get_trade_rate(player, harbor_point_list) -> int:
+    """
+    Return a trade rate for the current player
+    :param player: Player object
+    :param harbor_point_list: harbor list
+    :return: 3 if player owns a harbor, 4 if player did not owns a harbor
+    >>> p = Player()
+    >>> p.settlements = [0]
+    >>> p.cities = [1]
+    >>> harb_list1 = [2, 3, 4, 5]
+    >>> harb_list2 = [1]
+    >>> harb_list3 = [0, 2, 3, 4]
+    >>> get_trade_rate(p, harb_list1)
+    4
+    >>> get_trade_rate(p, harb_list2)
+    3
+    >>> get_trade_rate(p, harb_list3)
+    3
+    """
     if len(harbor_point_list) == 0:
         return 4
     return 3 if own_harbor(player, harbor_point_list) else 4
@@ -219,12 +262,15 @@ def get_trade_rate(player, harbor_point_list) -> int:
 def resource_compare_generator(player, trade_rate, resDic: ResourceDict):
     """
     Calculate the turnable resources number
+    :param resDic: ResourceDict contians resource dict for current resource
     :param player: palyer
     :param trade_rate: 4 without harbro, else 3
-    :param needed_dict: the dictionary with key: needed resource idx, val: resource amount
-    :param resource_list: the list for redundant resource idx
-    :param target_list: list for needed resource idx
     :return: resource_lack lack number of resource, resource_turn turnable resource number
+    >>> p = Player()
+    >>> p.set_resource_list([1, 1, 0, 0, 0])
+    >>> rd = ResourceDict("road")
+    >>> resource_compare_generator(p, 3, rd)
+    (0, 0)
     """
     resource_lack = 0
     resource_turn = 0  # source could get via trading
@@ -245,6 +291,16 @@ def city_possible(player: Player, harbor_point_list):
     Check if the current player could build a city
     :param player: Type Player
     :return: True if the player could build a city, False if not
+    >>> p = Player()
+    >>> p.settlements = [0]
+    >>> p.set_resource_list([0, 3, 2, 2, 0])
+    >>> hb1 = [0]
+    >>> hb2 = [1]
+    >>> rd = ResourceDict("road")
+    >>> city_possible(p, hb1)
+    True
+    >>> city_possible(p, hb2)
+    False
     """
     # check if possible grain num >= 2 and ore num >= 3
     resources_list = player.resources_list
@@ -266,13 +322,34 @@ def city_possible(player: Player, harbor_point_list):
 def settlement_possible(player: Player, harbor_point_list, pp):
     """
     Check if the current player could build a settlement
+    :param harbor_point_list: list contains all harbor point
     :param player: Type Player
     :return: True if the player could build a settlement, False if not
+
+    >>> p_h, p_p, t_p = initiate_map('./data/init/')
+    >>> hpl = list(set([sub_li[0] for sub_li in p_h]))
+    >>> ttl = get_terrain_resource()
+    >>> tnl = get_roll_num_list(ttl)
+    >>> itd, td = generate_terrain_dict(ttl, tnl, t_p)
+    >>> ptd, ppro, ppsl = point_terrain_creator(t_p, itd)
+
+    >>> p = Player()
+    >>> p.reachable_points = [55]
+    >>> p.settlements = [0]
+    >>> p.resource_list = [1, 1, 3, 1, 1]
+    >>> hb1 = [0]
+    >>> hb2 = [1]
+    >>> rd = ResourceDict("road")
+    >>> settlement_possible(p, hb1, p_p)
+    False
+    >>> settlement_possible(p, hb2, p_p)
+    False
     """
     # check if possible brick, lumber, wool, grain num >= 1 each
     resources_list = player.resources_list
     # check if settlement number reaches the maximum requirement
-    if len(player.settlements) == 5: return False
+    if len(player.settlements) == 5:
+        return False
     # check if there has no place for building a settlement: all the reachable point cannot build a settlement
     reachable_points_lists = player.reachable_points.copy()
 
@@ -285,13 +362,15 @@ def settlement_possible(player: Player, harbor_point_list, pp):
 
     buildable_point = []
     for point in reachable_points_lists:
-        if point not in player.settlements and point not in building_neighbor and point not in player.cities:
+        if (point not in player.settlements) and (point not in building_neighbor) and (point not in player.cities):
             buildable_point.append(point)
 
-    if len(buildable_point) == 0: return False
+    if len(buildable_point) == 0:
+        return False
 
     # check if resource is suitable without trading
-    if resources_list[0] >= 1 and resources_list[1] >= 1 and resources_list[3] >= 1 and resources_list[4] >= 1:
+    if (player.resources_list[0] >= 1) and (player.resources_list[1] >= 1) \
+            and (player.resources_list[3] >= 1) and (player.resources_list[4] >= 1):
         return True
     # check if resource is suitable with trading
     trade_rate = get_trade_rate(player, harbor_point_list)
@@ -336,6 +415,37 @@ def trade_supporter(player, trade_rate, resDic: ResourceDict):
     :param resource_list: list_stores all redundant resource idx for this building
     :param target_list: list stores all needed resource
     :return:
+    >>> p = Player()
+    >>> rd = ResourceDict("road")
+    >>> p.resources_list = [1,0,3,0,0]
+    >>> trade_supporter(p, 3, rd)
+    >>> p.resources_list
+    [1, 1, 0, 0, 0]
+    >>> rd = ResourceDict("road")
+    >>> p.resources_list = [1,0,3,0,0]
+    >>> trade_supporter(p, 4, rd)
+    >>> p.resources_list
+    [1, 0, 3, 0, 0]
+    >>> rd = ResourceDict("settlement")
+    >>> p.resources_list = [1,0,3,1,1]
+    >>> trade_supporter(p, 3, rd)
+    >>> p.resources_list
+    [1, 1, 0, 1, 1]
+    >>> rd = ResourceDict("settlement")
+    >>> p.resources_list = [1,0,3,1,1]
+    >>> trade_supporter(p, 4, rd)
+    >>> p.resources_list
+    [1, 0, 3, 1, 1]
+    >>> rd = ResourceDict("city")
+    >>> p.resources_list = [3,0,2,2,0]
+    >>> trade_supporter(p, 3, rd)
+    >>> p.resources_list
+    [0, 0, 3, 2, 0]
+    >>> rd = ResourceDict("city")
+    >>> p.resources_list = [3,0,2,2,0]
+    >>> trade_supporter(p, 4, rd)
+    >>> p.resources_list
+    [3, 0, 2, 2, 0]
     """
     for need_id, need_num in resDic.needed_dict.items():
         if player.resources_list[need_id] < need_num:
@@ -519,7 +629,6 @@ def city_upgrade_prefer(player: Player, terrain_dict, point_probability, pp, har
     while city_possible(player, harbor_point_list):
         build_a_city(player, point_probability, harbor_point_list)
         # check if resource available for building a settlement: while loop
-
 
 
 def settlement_build_prefer(player: Player, terrain_dict, point_probability, pp, harbor_point_list) -> None:
@@ -717,6 +826,11 @@ def check_game_pass(player, time, vp, epoch, max_round):
     :param epoch: check whether a display is needed
     :param max_round: max round for each point
     :return: True if player wins game, False if not or exceed final loop
+    >>> time, vp, epoch, max_round = 100, 8, 51, 200
+    >>> p = Player()
+    >>> p.vp = 7
+    >>> check_game_pass(p, time, vp, epoch, max_round)
+    False
     """
     if player.vp >= vp:
         print("==============================")
@@ -825,7 +939,6 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     mean1 = sum(y_rec1) / len(y_rec1)
     mean2 = sum(y_rec2) / len(y_rec2)
 
-
     title = f"Statistic_Vis_for_Hypothesis_{hypo}"
     bins = np.linspace(0, max_round, max_round // 10)
     plt.xlabel("Times")
@@ -838,7 +951,6 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     output_name = './data/output/' + title
     plt.savefig(output_name)
     plt.close()
-
 
 
 def board_save(point_terrain_dict: dict, idx_terrain_dict: dict) -> None:
@@ -919,7 +1031,6 @@ if __name__ == '__main__':
         pp_dict: {point, [points_neighbor]}, all point with their neighbors
         harbor_point_list: [points], shows all points that owns a harbor 
     """
-    init_data_url = './data/init/'
 
     # visualize dice rolling distribution
     test = [0] * 11
@@ -927,6 +1038,7 @@ if __name__ == '__main__':
         test[roll_dice() + roll_dice() - 2] += 1
     dice_visualization(test)
 
+    init_data_url = './data/init/'
     # test for initiate map
     ph, pp, tp = initiate_map(init_data_url)
     harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
