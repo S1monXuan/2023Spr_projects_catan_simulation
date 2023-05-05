@@ -4,6 +4,8 @@
 It is the final project for UIUC IS 597 pr. Created by Xinmai Xuan (xinmaix2).
 The coding part is finished
 
+To run the simulation, please run the python file "Catan_basic.py" file. All visualization results would stored in folder './data/output' folder. All border would store in folder './data/border'
+
 # Introduction
 
 ## What is Catan
