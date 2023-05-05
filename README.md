@@ -195,6 +195,8 @@ The hypothesis compares two strategy: upgrading a city prefer and build a new se
 From the histogram, we can see that it is more rewarding to adopt city prefer methods rather than settlement.
 Thus, this hypothesis is valid.
 ![Image text](data/output/Statistic_Vis_for_Hypothesis_1.png)
+Below is the compare for two different strategy on the same board. The number represents the number if player use this strategy reaches required point faster. Though settlement_prefer strategy wins at some time, city_prefer strategy player wins most of the time.
+![Image text](data/output/pie_settlement%20prefer_city%20prefer.png)
 
 ### Hypothesis 2
 
@@ -203,6 +205,8 @@ The hypothesis compares two strategy: upgrading a city prefer and build a new se
 From the histogram, we can see that it is more rewarding to adopt city prefer methods rather than settlement.
 Thus, this hypothesis is valid.
 ![Image text](data/output/Statistic_Vis_for_Hypothesis_2.png)
+Below is the compare for two different strategy on the same board. The number represents the number if player use this strategy reaches required point faster. Though harbor_prefer strategy wins at some time, city_prefer strategy player wins most of the time.
+![Image text](data/output/pie_harbor%20prefer_city%20prefer.png)
 
 ## Citations:
 
