@@ -6,6 +6,19 @@ The coding part is finished
 
 To run the simulation, please run the python file "Catan_basic.py" file. All visualization results would stored in folder './data/output' folder. All border would store in folder './data/border'
 
+___
+# Please create data/border folder for border.csv files
+___
+
+# Updated version May 6
+
+- Added Catan_basic_compete part designed to put players with different strategy into same board instead of different board.
+    To run this code, please run file Catan_basic_Compete.py file
+- Small flaws for harbor prefer strategy in compete file.
+    Might be failed to reach required vp point in hypothesis 2.
+
+___
+
 # Introduction
 
 ## What is Catan

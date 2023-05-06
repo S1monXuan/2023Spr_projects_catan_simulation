@@ -90,7 +90,8 @@ class Player:
         self.resources_list[max_idx] -= 1
 
     def print_player(self):
-        print(f'player vp: {self.vp}, settlement list: {self.settlements}, city list: {self.cities} \n'
+        print(f'player strategy: {self.strategy} \n'
+              f'player vp: {self.vp}, settlement list: {self.settlements}, city list: {self.cities} \n'
               f'reachable points list: {self.reachable_points} \n'
               f'resources list: {self.resources_list}')
 

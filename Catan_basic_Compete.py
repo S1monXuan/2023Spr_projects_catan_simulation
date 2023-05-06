@@ -233,7 +233,8 @@ def compete_player_generator(point_probability_sort_list, pp, point_terrain_dict
             cur_point += 1
         player.settlements.append(point_probability_sort_list[cur_point])
         player.reachable_points.append(point_probability_sort_list[cur_point])
-        build_a_road(player, point_probability, pp, harbor_point_list, special_point=point_probability_sort_list[cur_point])
+        build_a_road(player, point_probability, pp, harbor_point_list,
+                     special_point=point_probability_sort_list[cur_point])
         settlement_list.append(point_probability_sort_list[cur_point])
 
     for idx in range(player_num - 1, -1, -1):
@@ -270,8 +271,9 @@ def get_default_resource(player: Player, idx_terrain_dict: dict, default_settlem
     :return:
     """
     for idx, terrain in idx_terrain_dict.items():
-        if default_settlement in terrain.point:
+        if (default_settlement in terrain.point) and (terrain.resource != 5):
             player.resources_list[terrain.resource] += 1
+    # pass
 
 
 def own_harbor(player: Player, harbor_point_list: dict) -> bool:
@@ -744,7 +746,8 @@ def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, har
     building_point_list.extend(player.settlements)
 
     # check whether player owns a harbor
-    if own_harbor(player, harbor_point_list):
+    if own_harbor(player, harbor_point_list) or (len(harbor_path) == 0) or (len(harbor_path) > 6) or (
+            len(harbor_path) < (15 - player.road_num)):
         # step 2: if already have a harbor, do as settlement first
         settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
     else:
@@ -765,7 +768,8 @@ def harbor_build_prefer(player: Player, terrain_dict, point_probability, pp, har
             player.settlements = cur_settlements
 
 
-def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor_point_list: list) -> [int, list]:
+def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor_point_list: list,
+                         player_list: list) -> [int, list]:
     """
     get the nearest point(harbor) to the point and the shortest path to the point
     :param player:
@@ -778,6 +782,21 @@ def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor
 
     # remove all valid harbor_point_list if they are the neighbor for current player
     cur_harbor_point_list = harbor_point_list.copy()
+    building_points = []
+
+    # add all other player settlement and city into cur_settlements:
+    for p in player_list:
+        settlements = p.settlements.copy()
+        cities = p.cities.copy()
+        for settlement in settlements:
+            if settlement not in cur_settlements:
+                building_points.append(settlement)
+                cur_settlements.append(settlement)
+        for city in cities:
+            if city not in cur_settlements:
+                building_points.append(city)
+                cur_settlements.append(city)
+
     for settlement in cur_settlements:
         neighbors = pp[settlement]
         for nei in neighbors:
@@ -785,7 +804,7 @@ def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor
                 cur_harbor_point_list = [ele for ele in cur_harbor_point_list if ele != nei]
 
     for start_point in reachable_list:
-        cur_path = find_shortest_path(start_point, pp, cur_harbor_point_list)
+        cur_path = find_shortest_path(start_point, pp, cur_harbor_point_list, building_points)
 
         if len(cur_path) < len(res_list):
             res_list = cur_path
@@ -794,7 +813,7 @@ def shortest_harbor_path(cur_settlements: list, reachable_list: list, pp, harbor
     return harbor_point, res_list
 
 
-def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> list:
+def find_shortest_path(start_point: int, pp: list, harbor_point_list: list, building_points: list) -> list:
     """
     Support function to find the shortest path start from start_point, Using BFS
     Idea from:
@@ -802,7 +821,7 @@ def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> l
 
     :param start_point: the start point for the path, default will not be the harbor_point_list
     :param pp: point-point list
-    :param harbor_point_list: list contains all possible result
+    :param harbor_point_list: list contains all possible harbor result
     :param cur_path: list for all current visited path
     :param res_list: return current best route
     :return: int represent the point contains the harbor, list contains the road to build the path
@@ -812,7 +831,7 @@ def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> l
     if start_point in harbor_point_list:
         return [start_point]
 
-    while queue_list is not None:
+    while len(queue_list) > 0:
         size = len(queue_list)
         new_layer = []
         for _ in range(size):
@@ -830,38 +849,39 @@ def find_shortest_path(start_point: int, pp: list, harbor_point_list: list) -> l
                     queue_list.append(route)
         visited.extend(new_layer)
 
-    return None
+    return []
 
 
-def get_resource(player: Player, terrain_dict: dict) -> None:
+def get_resource(player_list: list, terrain_dict: dict, dice_num: int) -> None:
     """
         Simulatte the resource get process, after the function, all resources were updated
     :param player:
     :param terrain_dict:
     :return:
     """
-    dice_num = roll_dice() + roll_dice()
+    # dice_num = roll_dice() + roll_dice()
     terrain_resources = [[t.point, t.resource] for t in terrain_dict[dice_num]]
 
     ## step 2: find all player owned place, add resource
     # add 1 resouce to all settlments
-    player_buildings = player.settlements
-    if dice_num != 7:  # if the number is 7, do not have any resource, jump out for further report
-        for building_point in player_buildings:
-            for [des_point_list, point_resource] in terrain_resources:
-                player.resources_list[point_resource] += 1 if building_point in des_point_list else 0
+    for player in player_list:
+        player_buildings = player.settlements
+        if dice_num != 7:  # if the number is 7, do not have any resource, jump out for further report
+            for building_point in player_buildings:
+                for [des_point_list, point_resource] in terrain_resources:
+                    player.resources_list[point_resource] += 1 if building_point in des_point_list else 0
 
-        player_buildings = player.cities
-        for building_point in player_buildings:
-            for [des_point_list, point_resource] in terrain_resources:
-                player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
-    else:  # dice_num == 7
-        # if the dice rolls 7, player must discard resources if the resources number larger than 7
-        # hypothesis: player always discard the most resources type
-        discard_num = sum(player.resources_list) // 2 if sum(player.resources_list) > 7 else 0
-        while discard_num > 0:
-            player.discard_one_resource()
-            discard_num -= 1
+            player_buildings = player.cities
+            for building_point in player_buildings:
+                for [des_point_list, point_resource] in terrain_resources:
+                    player.resources_list[point_resource] += 2 if building_point in des_point_list else 0
+        else:  # dice_num == 7
+            # if the dice rolls 7, player must discard resources if the resources number larger than 7
+            # hypothesis: player always discard the most resources type
+            discard_num = sum(player.resources_list) // 2 if sum(player.resources_list) > 7 else 0
+            while discard_num > 0:
+                player.discard_one_resource()
+                discard_num -= 1
 
 
 def get_rec_list(player: Player):
@@ -905,11 +925,11 @@ def check_game_pass(player, time, vp, epoch, max_round):
         player.print_player()
         return True
     # if not, check player situation for every 50 rounds
-    if (time + 1) % epoch == 0:
-        print("==============================")
-        print(f"player status after round {time + 1}")
-        print("Player status display:")
-        player.print_player()
+    # if (time + 1) % epoch == 0:
+    #     print("==============================")
+    #     print(f"player status after round {time + 1}")
+    #     print("Player status display:")
+    #     player.print_player()
 
     if time == max_round - 1:
         print("==============================")
@@ -918,7 +938,8 @@ def check_game_pass(player, time, vp, epoch, max_round):
     return False
 
 
-def simulation_process(player, terrain_dict, point_probability, pp, harbor_point_list, strategy, max_round=200, vp=10,
+def simulation_process(player, terrain_dict, point_probability, pp, harbor_point_list, strategy, time,
+                       player_list: list, max_round=200, vp=10,
                        epoch=50):
     """
 
@@ -933,36 +954,36 @@ def simulation_process(player, terrain_dict, point_probability, pp, harbor_point
     :param epoch:
     :return:
     """
-    if strategy == 3:
+    if strategy == "harbor_prefer":
+        settlements = player.settlements.copy()
+        settlements.extend(player.cities.copy())
+
         dest_harbor_point, dest_path = shortest_harbor_path(player.settlements, player.reachable_points, pp,
-                                                            harbor_point_list)
+                                                            harbor_point_list, player_list)
     ## for settlement prefer strategy
     max_round, vp, gamePass = max_round, vp, False
     reclist = get_rec_list(player)
-    used_round = max_round
-    for time in range(max_round):
-        # step 1: get resource
-        get_resource(player, terrain_dict)
-        # step 2: check for any possible build process
-        if strategy == 1:
-            settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-        elif strategy == 2:
-            city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
-        elif strategy == 3:
-            harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
-                                dest_harbor_point)
-        # step 3: store current status into resource recorder for later display
-        reclist = get_rec_list(player)
-        # step 4: check if player wins, if so, display and return all results
-        gamePass = check_game_pass(player, time, vp, epoch, max_round)
-        if gamePass:
-            used_round = time
-            break
+    used_round = time
+    # for time in range(max_round):
+    # step 1: get resource
+    # get_resource(player, terrain_dict)
+    # step 2: check for any possible build process
+    if strategy == "settlement_prefer":
+        settlement_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+    elif strategy == "city_prefer":
+        city_upgrade_prefer(player, terrain_dict, point_probability, pp, harbor_point_list)
+    elif strategy == "harbor_prefer":
+        harbor_build_prefer(player, terrain_dict, point_probability, pp, harbor_point_list, dest_path,
+                            dest_harbor_point)
+    # step 3: store current status into resource recorder for later display
+    reclist = get_rec_list(player)
+    # step 4: check if player wins, if so, display and return all results
+    gamePass = check_game_pass(player, time, vp, epoch, max_round)
     resRecoder = ResRecoder(used_round, gamePass)
     return resRecoder, reclist
 
 
-def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_type: str, hypo: int,
+def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_type: str, hypo: int, compete: False,
                   simulation_times=1000):
     """
     Create plot for number store
@@ -995,6 +1016,8 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.plot(x_val, y_rec2)
     plt.legend([round1_type, round2_type])
     output_name = './data/output/' + title
+    if compete:
+        output_name += '_Compete'
     plt.savefig(output_name)
     plt.close()
 
@@ -1011,10 +1034,12 @@ def vis_two_round(round_rec1: list, round_rec2: list, round1_type: str, round2_t
     plt.axvline(x=mean2, color='orange', linestyle='-', alpha=0.5)
     plt.legend([round1_type, round2_type])
     output_name = './data/output/' + title
+    if compete:
+        output_name += '_Compete'
     plt.savefig(output_name)
     plt.close()
 
-    bar_vis(round_rec1, round_rec2, round1_type, round2_type)
+    bar_vis(round_rec1, round_rec2, round1_type, round2_type, compete)
 
 
 def board_save(point_terrain_dict: dict, idx_terrain_dict: dict, filename: str) -> None:
@@ -1042,9 +1067,9 @@ def board_save(point_terrain_dict: dict, idx_terrain_dict: dict, filename: str) 
         header.append(resourceli)
 
     # display resource situation
-    print(header)
-    for resource in resource_list:
-        print(resource)
+    # print(header)
+    # for resource in resource_list:
+    #     print(resource)
 
     # stroe situation into a csvfile
     with open(filename, 'w', newline='') as file:
@@ -1052,7 +1077,7 @@ def board_save(point_terrain_dict: dict, idx_terrain_dict: dict, filename: str) 
         writer.writerows(header)
 
 
-def dice_visualization(num_list):
+def dice_visualization(num_list, compete=True):
     """
     Visualize the distribution of rolling 2 dices
     :param num_list:
@@ -1064,11 +1089,13 @@ def dice_visualization(num_list):
     plt.xlabel("Roll Value")
     title = "Dice_visualization"
     output_name = './data/output/' + title
+    if compete:
+        output_name += '_Compete'
     plt.savefig(output_name)
     plt.close()
 
 
-def bar_vis(val1: list, val2: list, name1, name2):
+def bar_vis(val1: list, val2: list, name1, name2, compete=False):
     res = [0, 0, 0]
     for i in range(len(val1)):
         if val1[i] < val2[i]:
@@ -1081,6 +1108,8 @@ def bar_vis(val1: list, val2: list, name1, name2):
     title = "pie_" + name1 + "_" + name2
     plt.pie(res, labels=[name1, name2, "draw"])
     output_name = './data/output/' + title
+    if compete:
+        output_name += '_Compete'
     plt.legend([name1, name2, "draw"])
     plt.savefig(output_name)
     plt.close()
@@ -1118,7 +1147,7 @@ if __name__ == '__main__':
     test = [0] * 11
     for _ in range(100000):
         test[roll_dice() + roll_dice() - 2] += 1
-    dice_visualization(test)
+    dice_visualization(test, compete=True)
 
     init_data_url = './data/init/'
     # test for initiate map
@@ -1133,13 +1162,73 @@ if __name__ == '__main__':
     board_save(point_terrain_dict, idx_terrain_dict, 'data/output/border.csv')
 
     ## simulation part
-    simulation_times, max_round, vp, epoch = 1000, 300, 8, 50
+    simulation_times, max_round, vp, epoch = 1000, 400, 10, 50
     val1 = []
     val2 = []
     val3 = []
 
+    strategy_list = ["settlement_prefer", "city_prefer"]
+    res_dict = {}
+    for strategy in strategy_list:
+        res_dict[strategy] = []
+
+    # for i in range(simulation_times):
+    #     # create a new board and save
+    #     print("=====================")
+    #     print(f"{i} times simulation:")
+    #     harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
+    #     terrain_type_list = get_terrain_resource()
+    #     terrain_number_list = get_roll_num_list(terrain_type_list)
+    #     idx_terrain_dict, terrain_dict = generate_terrain_dict(terrain_type_list, terrain_number_list, tp)
+    #     point_terrain_dict, point_probability, point_probability_sort_list = point_terrain_creator(tp, idx_terrain_dict)
+    #     filename = 'data/border/border' + str(i) + '.csv'
+    #     board_save(point_terrain_dict, idx_terrain_dict, filename)
+    #
+    #     finishcnt = 0
+    #     player_li = compete_player_generator(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+    #                                          point_probability, strategy_list)
+    #
+    #     for times in range(max_round):
+    #         if finishcnt == len(player_li):
+    #             break
+    #         # each player start their round
+    #         for player in player_li:
+    #             if player.vp < vp:
+    #                 dice_num = roll_dice() + roll_dice()
+    #                 # All player get resource:
+    #                 get_resource(player_li, terrain_dict, dice_num)
+    #                 # action for this player
+    #                 resRecoder, reclist = simulation_process(player, terrain_dict, point_probability, pp, harbor_point_list, player.strategy, times, player_li,
+    #                                    max_round=max_round, vp=vp, epoch=epoch)
+    #                 if player.vp >= vp or (times == (max_round - 1)):
+    #                     curli = res_dict[player.strategy]
+    #                     print(curli)
+    #                     curli.append(times + 1)
+    #                     res_dict[player.strategy] = curli
+    #                     print(f"{player.strategy}: {times + 1}")
+    #                     finishcnt += 1
+    #         # Each player start their turn
+    #
+    # print(res_dict)
+    # val1 = []
+    # val2 = []
+    # for idx, lis in res_dict.items():
+    #     if idx == "settlement_prefer":
+    #         val1 = lis
+    #     else:
+    #         val2 = lis
+    #
+    # vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times, compete=True)
+
+    strategy_list = ["harbor_prefer", "city_prefer"]
+    res_dict = {}
+    for strategy in strategy_list:
+        res_dict[strategy] = []
+
     for i in range(simulation_times):
-        # cereate a new board and save
+        # create a new board and save
+        print("=====================")
+        print(f"{i} times simulation:")
         harbor_point_list = list(set([sub_li[0] for sub_li in ph]))
         terrain_type_list = get_terrain_resource()
         terrain_number_list = get_roll_num_list(terrain_type_list)
@@ -1148,28 +1237,39 @@ if __name__ == '__main__':
         filename = 'data/border/border' + str(i) + '.csv'
         board_save(point_terrain_dict, idx_terrain_dict, filename)
 
-        # GeneratePlayer
+        finishcnt = 0
+        player_li = compete_player_generator(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
+                                             point_probability, strategy_list)
 
+        for times in range(max_round):
+            if finishcnt == len(player_li):
+                break
+            # each player start their round
+            for player in player_li:
+                if player.vp < vp:
+                    dice_num = roll_dice() + roll_dice()
+                    # All player get resource:
+                    get_resource(player_li, terrain_dict, dice_num)
+                    # action for this player
+                    resRecoder, reclist = simulation_process(player, terrain_dict, point_probability, pp,
+                                                             harbor_point_list, player.strategy, times, player_li,
+                                                             max_round=max_round, vp=vp, epoch=epoch)
+                    if player.vp >= vp or (times == (max_round - 1)):
+                        curli = res_dict[player.strategy]
+                        print(curli)
+                        curli.append(times + 1)
+                        res_dict[player.strategy] = curli
+                        print(f"{player.strategy}: {times + 1}")
+                        finishcnt += 1
+            # Each player start their turn
 
-        player1 = player_generator(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability, "settlement_prefer")
-        player2 = player_generator(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability, "city_prefer")
-        player3 = player_generator(point_probability_sort_list, pp, point_terrain_dict, idx_terrain_dict,
-                                   point_probability, "harbor_prefer")
+    print(res_dict)
+    val1 = []
+    val2 = []
+    for idx, lis in res_dict.items():
+        if idx == "city_prefer":
+            val2 = lis
+        else:
+            val1 = lis
 
-        recoder1, rec1 = simulation_process(
-            player1, terrain_dict, point_probability, pp, harbor_point_list, 1, max_round=max_round, vp=vp, epoch=epoch)
-        recoder2, rec2 = simulation_process(
-            player2, terrain_dict, point_probability, pp, harbor_point_list, 2, max_round=max_round, vp=vp, epoch=epoch)
-        recoder3, rec3 = simulation_process(
-            player3, terrain_dict, point_probability, pp, harbor_point_list, 3, max_round=max_round, vp=vp, epoch=epoch)
-
-        val1.append(recoder1.used_round)
-        val2.append(recoder2.used_round)
-        val3.append(recoder3.used_round)
-
-    print(f"Avg for val1: {sum(val1) / len(val1)}, val2: {sum(val2) / len(val2)}, val3: {sum(val3) / len(val3)}")
-
-    vis_two_round(val1, val2, "settlement prefer", "city prefer", 1, simulation_times=simulation_times)
-    vis_two_round(val3, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times)
+    vis_two_round(val1, val2, "harbor prefer", "city prefer", 2, simulation_times=simulation_times, compete=True)
