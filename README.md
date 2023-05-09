@@ -2,13 +2,21 @@
 
 ![Image text](data/catan.jpg)
 It is the final project for UIUC IS 597 pr. Created by Xinmai Xuan (xinmaix2).
-The coding part is finished
 
 To run the simulation, please run the python file "Catan_basic.py" file. All visualization results would stored in folder './data/output' folder. All border would store in folder './data/border'
 
 ---
 
 # Please create data/border folder for border.csv files
+
+---
+
+# Updated version May 9(Newest)
+
+- Put repeated function into `Universal_func.py` file
+- Change visualization of compete version
+- Edit doctest and document for better understanding
+- Still have some bugs for Harbor_prefer strategy. It may reach the largest round set (400 in default) when deployed with city-prefer player.
 
 ---
 
