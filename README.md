@@ -6,18 +6,28 @@ The coding part is finished
 
 To run the simulation, please run the python file "Catan_basic.py" file. All visualization results would stored in folder './data/output' folder. All border would store in folder './data/border'
 
-___
+---
+
 # Please create data/border folder for border.csv files
-___
+
+---
+
+# Updated version May 9
+
+- Add compete code for current version
+- Modify compete part code
+- integrated functions into separate py files
+
+---
 
 # Updated version May 6
 
 - Added Catan_basic_compete part designed to put players with different strategy into same board instead of different board.
-    To run this code, please run file Catan_basic_Compete.py file
+  To run this code, please run file Catan_basic_Compete.py file
 - Small flaws for harbor prefer strategy in compete file.
-    Might be failed to reach required vp point in hypothesis 2.
+  Might be failed to reach required vp point in hypothesis 2.
 
-___
+---
 
 # Introduction
 
@@ -221,13 +231,36 @@ Thus, this hypothesis is valid.
 Below is the compare for two different strategy on the same board. The number represents the number if player use this strategy reaches required point faster. Though harbor_prefer strategy wins at some time, city_prefer strategy player wins most of the time.
 ![Image text](data/output/pie_harbor%20prefer_city%20prefer.png)
 
+### Hypothesis 1
+
+`Assume upgrading a city can help get the required vp points faster than case 2 building a new settlement. `
+![Image text](data/output/Vis_for_Hypothesis_1_Compete.png)
+![Image text](data/output/pie_settlement_prefer_city_prefer_Compete.png)
+
+### Hypothesis 2
+
+`Assume getting a particular port can help get the required vp points faster than upgrading a ctiy which could help get more resources.`
+![Image text](data/output/Vis_for_Hypothesis_2_Compete.png)
+![Image text](data/output/pie_harbor_prefer_city_prefer_Compete.png)
+
+---
+
+# compete version
+
+## What would happen if we put the player into one board under the two hypothesis
+
+- Unlike un compete version, player would play in a same board based on their strategy, each simulation would stop immediately when a player reaches the required point
+- I create different visualization plot for compete version. Pie plot is the same, wherever the bar plot shows the distribution for each strategy if they failed to win their game
+
+---
+
 ## Citations:
 
 1. Catan Photo:
-Catan Universe - Changelog 2.3.2 - Steam News. 19 Apr. 2023, store.steampowered.com/news/app/544730/view/5978007465995605824?l=english.
+   Catan Universe - Changelog 2.3.2 - Steam News. 19 Apr. 2023, store.steampowered.com/news/app/544730/view/5978007465995605824?l=english.
 2. Catan Introduction Wiki:
-Catan. “Catan.” Wikipedia, 11 Apr. 2023, en.wikipedia.org/wiki/Catan.
+   Catan. “Catan.” Wikipedia, 11 Apr. 2023, en.wikipedia.org/wiki/Catan.
 3. Catan rules:
-“Game Rules.” CATAN, www.catan.com/understand-catan/game-rules.
+   “Game Rules.” CATAN, www.catan.com/understand-catan/game-rules.
 4. BFS Tree Idea:
-Wikipedia contributors. “Breadth-first Search.” Wikipedia, 27 Feb. 2023, en.wikipedia.org/wiki/Breadth-first_search.
+   Wikipedia contributors. “Breadth-first Search.” Wikipedia, 27 Feb. 2023, en.wikipedia.org/wiki/Breadth-first_search.
